@@ -1,6 +1,9 @@
 # Architecture
 Time machine follows a Scylla-like ring architecture which is inspired by Apache Cassandra, Amazon Dynamo and Google BigTable.
 
+## Diagram
+![Architecture diagram](./images/vnode_distribution.png)
+
 ## ✏️ Definitions
 ### Terms
 * `database` - A set of collections
