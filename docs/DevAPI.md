@@ -87,7 +87,7 @@ Response 400:
 }
 ```
 
-## 🛺 Route APIs
+## ☎️ Route APIs
 
 ### Create a route
 `POST /route/:db`

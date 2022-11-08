@@ -1,19 +1,22 @@
 # Time Machine 🐓
-A distributed, fault tolerant scheduler that can potentially scale to millions of jobs. 
+A distributed, fault tolerant scheduler database that can potentially scale to millions of jobs. 
 
 The idea is to build it with a storage layer based on B+tree or LSM-tree implementation, consistent hashing for load balancing, and raft for consensus.
 
 ## 🧬 Documentation
-- [🚀 Purpose](./docs/Purpose.md)
-    - [🚣 Why are we building this ?](./docs/Purpose.md#🚣-why-are-we-building-this)
-    - [🚜 What does it take ?](./docs/Purpose.md#🚜-what-does-it-take)
-- [🔮 Architecture](./docs/Architecture.md)
+- [Purpose](./docs/Purpose.md)
+    - [Why are we building this ?](./docs/Purpose.md#-why-are-we-building-this)
+    - [What does it take ?](./docs/Purpose.md#🚜-what-does-it-take)
+- [Architecture](./docs/Architecture.md)
 - [Developer APIs](./docs/DevAPI.md)
-    - [⏰ Job APIs](./docs/DevAPI.md#⏰-job-apis)
-    - [🛺 Route APIs](./docs/DevAPI.md#🛺-route-apis)
+    - [Job APIs](./docs/DevAPI.md#-job-apis)
+    - [Route APIs](./docs/DevAPI.md#-route-apis)
 - [TODO](./docs/TODO.md)
 
-## 🧰 Stack
+## Roadmap 
+To be revealed soon 🍄
+
+## 🛺 Tech Stack
 * Storage layer
     * [BoltDB](https://github.com/boltdb/bolt) and [BBoltDB](https://github.com/etcd-io/bbolt)
     * [BadgerDB](https://github.com/dgraph-io/badger)

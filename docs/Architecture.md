@@ -1,7 +1,7 @@
 # 🔮 Architecture
 Time machine follows a Scylla-like ring architecture which is inspired by Apache Cassandra, Amazon Dynamo and Google BigTable.
 
-## 🏞️ Diagram
+## 🦋 Diagram
 ![Architecture diagram](./images/vnode_distribution.png)
 
 ## ✏️ Definitions
@@ -20,7 +20,8 @@ Time machine follows a Scylla-like ring architecture which is inspired by Apache
 ### Actors
 * `creator` - the service which created this job
 * `recipient` - the service which receives the trigger. Currently, only REST Webhook is supported
-* `vnode-leader` - the leader elected to trigger jobs for a particular time slot.
+* `node leader` - The leader node. The leader will be selected based on raft consensus algorithm
+* `vnode-leader` - the leader vnode elected to trigger jobs for a particular time slot among the vnode replicas. This ensures true distributed nature of the scheduler
 * `admin` - a human who has special privileges to manually trigger compaction, rebalance etc. These operations are supposed to be executed with care under low-traffic conditions. I'm sorry, robots aren't allowed.
 
 ## 🎰 Behaviour
