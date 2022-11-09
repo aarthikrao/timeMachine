@@ -1,4 +1,7 @@
-# Time Machine 🐓
+# Time Machine DB 🐓
+[![Time Machine Discord](https://discordapp.com/api/guilds/1039813016096604211/widget.png?style=shield)](https://discord.gg/pDGNPj3dTM) 
+![Status](https://img.shields.io/badge/Status-Ideation-ffb3ff?style=flat-square)
+
 A distributed, fault tolerant scheduler database that can potentially scale to millions of jobs. 
 
 The idea is to build it with a storage layer based on B+tree or LSM-tree implementation, consistent hashing for load balancing, and raft for consensus.
