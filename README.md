@@ -1,6 +1,6 @@
 # Time Machine DB 🐓
-[![Time Machine Discord](https://discordapp.com/api/guilds/1039813016096604211/widget.png?style=shield)](https://discord.gg/pDGNPj3dTM) 
-![Status](https://img.shields.io/badge/Status-Ideation-ffb3ff?style=flat-square)
+[![Discord](https://img.shields.io/badge/Discord-%235865F2.svg?style=for-the-badge&logo=discord&logoColor=white)](https://discord.gg/pDGNPj3dTM) 
+![Status](https://img.shields.io/badge/Status-Ideation-ffb3ff?style=for-the-badge)
 
 A distributed, fault tolerant scheduler database that can potentially scale to millions of jobs. 
 
