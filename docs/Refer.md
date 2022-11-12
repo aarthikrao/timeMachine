@@ -1,5 +1,8 @@
 # 🔭 References
 
+## Other similar products
+* https://docs.aws.amazon.com/eventbridge/latest/userguide/eb-what-is.html
+
 ### Storage
 * https://dgraph.io/docs/badger/get-started/
 * https://dgraph.io/blog/post/badger/
