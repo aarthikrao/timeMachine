@@ -6,9 +6,11 @@ import (
 
 	jm "github.com/aarthikrao/timeMachine/models/jobmodels"
 	rm "github.com/aarthikrao/timeMachine/models/routemodels"
-	"github.com/aarthikrao/timeMachine/utils/time"
 	bolt "go.etcd.io/bbolt"
 )
+
+// Compile time validation for Datastore interface
+var _ DataStore = &BoltDataStore{}
 
 // routeCollection will contain the routing info for a DB
 var routeCollection []byte = []byte("routeCollection")
@@ -91,40 +93,44 @@ func (bds *BoltDataStore) SetJob(collection string, job *jm.Job) error {
 	}
 	defer tx.Rollback()
 
-	// Fetch the collection bucket
-	bkt, err := tx.CreateBucketIfNotExists([]byte(collection))
-	if err != nil {
-		return err
+	// Add the job in collection bucket
+	{
+		// Fetch the collection bucket
+		bkt, err := tx.CreateBucketIfNotExists([]byte(collection))
+		if err != nil {
+			return err
+		}
+
+		// Insert the job in collection bucket
+		err = bkt.Put([]byte(job.ID), by)
+		if err != nil {
+			return err
+		}
 	}
 
-	// Insert the job in collection bucket
-	err = bkt.Put([]byte(job.ID), by)
-	if err != nil {
-		return err
-	}
+	// Add the job in schedule bucket
+	{
+		// Fetch the schedule collection bucket
+		scheduleBkt, err := tx.CreateBucketIfNotExists(
+			scheduleCollection)
+		if err != nil {
+			return err
+		}
 
-	// Fetch the schedule collection bucket
-	scheduleBkt, err := tx.CreateBucketIfNotExists(
-		scheduleCollection)
-	if err != nil {
-		return err
-	}
+		// Fetch the minutewise bucket in scheduleBkt
+		minuteBkt, err := scheduleBkt.CreateBucketIfNotExists(
+			job.GetMinuteBucketName())
+		if err != nil {
+			return err
+		}
 
-	// Fetch the minutewise bucket in scheduleBkt
-	minuteBkt, err := scheduleBkt.CreateBucketIfNotExists(
-		job.GetMinuteBucketName())
-	if err != nil {
-		return err
-	}
-
-	// Insert the schedule in the minute wise bucket
-	uniqueKey := job.GetUniqueKey(collection)
-	if err = minuteBkt.Put(uniqueKey, []byte("1")); err != nil {
-		return err
-	}
-
-	if err = scheduleBkt.Put([]byte(job.ID), by); err != nil {
-		return err
+		// Insert the schedule in the minute wise bucket
+		if err = minuteBkt.Put(
+			job.GetUniqueKey(collection),
+			job.StringifyTriggerTime(),
+		); err != nil {
+			return err
+		}
 	}
 
 	// Commit the transaction and check for error.
@@ -139,47 +145,57 @@ func (bds *BoltDataStore) DeleteJob(collection, jobID string) error {
 	}
 	defer tx.Rollback()
 
-	bkt, err := tx.CreateBucketIfNotExists([]byte(collection))
-	if err != nil {
-		return err
-	}
-	val := bkt.Get([]byte(jobID))
-	if val == nil {
-		return ErrKeyNotFound
-	}
-	job, _ := jm.GetJobFromBytes(val)
+	// Fetch the job from collection bucket, get the job value
+	// and delete entry from collection bucket
+	var jobByteValue []byte
+	{
+		bkt, err := tx.CreateBucketIfNotExists([]byte(collection))
+		if err != nil {
+			return err
+		}
+		val := bkt.Get([]byte(jobID))
+		if val == nil {
+			return ErrKeyNotFound
+		}
 
-	// Fetch the schedule collection bucket
-	scheduleBkt, err := tx.CreateBucketIfNotExists(
-		scheduleCollection)
-	if err != nil {
-		return err
-	}
-
-	// Fetch the minutewise bucket in scheduleBkt
-	minuteBkt, err := scheduleBkt.CreateBucketIfNotExists(
-		job.GetMinuteBucketName())
-	if err != nil {
-		return err
+		// Delete the job from collection
+		if err = bkt.Delete([]byte(jobID)); err != nil {
+			return err
+		}
 	}
 
-	// Delete the schedule in the minute wise bucket
-	uniqueKey := job.GetUniqueKey(collection)
-	if err = minuteBkt.Delete(uniqueKey); err != nil {
-		return err
-	}
+	// Parse the job from bytes
+	job, _ := jm.GetJobFromBytes(jobByteValue)
 
-	// Delete the job from collection
-	if err = bkt.Delete([]byte(jobID)); err != nil {
-		return err
+	// Delete the job from schedule bucket.
+	{
+		// Fetch the schedule collection bucket
+		scheduleBkt, err := tx.CreateBucketIfNotExists(
+			scheduleCollection)
+		if err != nil {
+			return err
+		}
+
+		// Fetch the minutewise bucket in scheduleBkt
+		minuteBkt, err := scheduleBkt.CreateBucketIfNotExists(
+			job.GetMinuteBucketName())
+		if err != nil {
+			return err
+		}
+
+		// Delete the schedule in the minute wise bucket
+		uniqueKey := job.GetUniqueKey(collection)
+		if err = minuteBkt.Delete(uniqueKey); err != nil {
+			return err
+		}
 	}
 
 	// Commit the transaction and check for error.
 	return tx.Commit()
 }
 
-// FetchJobTill is used to fetch all the jobs in the datastore till the provided time
-func (bds *BoltDataStore) FetchJobTill(collection string, timeTill int) ([]*jm.Job, error) {
+// FetchJobForBucket is used to fetch all the jobs in the datastore till the provided time
+func (bds *BoltDataStore) FetchJobForBucket(collection string, minute int) ([]*jm.Job, error) {
 	// Start the transaction.
 	tx, err := bds.db.Begin(false)
 	if err != nil {
@@ -187,19 +203,44 @@ func (bds *BoltDataStore) FetchJobTill(collection string, timeTill int) ([]*jm.J
 	}
 	defer tx.Rollback()
 
-	c := tx.Bucket(scheduleCollection).Cursor()
+	// Fetch the schedule collection bucket
+	scheduleBkt, err := tx.CreateBucketIfNotExists(
+		scheduleCollection)
+	if err != nil {
+		return nil, err
+	}
 
-	// TODO: Consider proper job key
-	min := []byte(strconv.Itoa(time.GetCurrentMillis()))
-	max := []byte(strconv.Itoa(timeTill))
+	// Fetch the minute bucket
+	minuteBucket := scheduleBkt.Bucket([]byte(strconv.Itoa(minute)))
+	if minuteBucket == nil {
+		// It means there are no jobs for this minute
+		return nil, nil
+	}
 
 	var jobs []*jm.Job
 
-	// Iterate from min to max
-	for k, v := c.Seek(min); k != nil && bytes.Compare(k, max) <= 0; k, v = c.Next() {
-		// Read the byte values to job struct
-		j, err := jm.GetJobFromBytes(v)
+	// Fetch all the jobs in the bucket
+	c := minuteBucket.Cursor()
+	for k, _ := c.First(); k != nil; k, _ = c.Next() {
+		// TODO: Read the byte values to job struct
+		jobDetails := bytes.Split(k, []byte("_"))
+		if len(jobDetails) != 2 {
+			return nil, ErrInvalidDataformat
+		}
+		collection := jobDetails[0]
+		jobID := jobDetails[1]
+
+		// Fetch the collection
+		collectionBkt := tx.Bucket(collection)
+		if collectionBkt == nil {
+			continue
+		}
+
+		// Fetch the job
+		val := collectionBkt.Get(jobID)
+		j, err := jm.GetJobFromBytes(val)
 		if err != nil {
+			// TODO : Check return
 			return nil, err
 		}
 

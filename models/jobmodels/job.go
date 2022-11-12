@@ -36,12 +36,17 @@ func (j *Job) GetMinuteBucketName() []byte {
 	return []byte(strconv.Itoa(jobMinute))
 }
 
+// returns collection + "_" + job.ID
 func (j *Job) GetUniqueKey(collection string) []byte {
 	if collection == "" {
 		return nil
 	}
 
 	return []byte(fmt.Sprintf("%s_%s", collection, j.ID))
+}
+
+func (j *Job) StringifyTriggerTime() []byte {
+	return []byte(fmt.Sprintf("%d", j.TriggerTime))
 }
 
 // TODO: Change to msgpack later

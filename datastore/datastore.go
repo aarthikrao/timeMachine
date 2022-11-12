@@ -8,13 +8,13 @@ import (
 	rm "github.com/aarthikrao/timeMachine/models/routemodels"
 )
 
-type JobStore interface {
+type DataStore interface {
 	GetJob(collection, jobID string) (*jm.Job, error)
 	SetJob(collection string, job *jm.Job) error
-	DeleteJob(collection, job string) error
+	DeleteJob(collection, jobID string) error
 
 	// FetchJobTill is used to fetch all the jobs in the datastore till the provided time
-	FetchJobTill(collection string, time int) ([]*jm.Job, error)
+	FetchJobForBucket(collection string, minute int) ([]*jm.Job, error)
 
 	GetRoute(routeID string) (*rm.Route, error)
 	SetRoute(route *rm.Route) error
