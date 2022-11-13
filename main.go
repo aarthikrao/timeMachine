@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"flag"
 	"os"
 	"os/signal"
 	"syscall"
@@ -12,8 +13,11 @@ import (
 )
 
 func main() {
+	dataDir := flag.String("datadir", "data", "Provide the data directory without trailing /")
+	flag.Parse()
+
 	// Initialise datastore
-	datastore, err := ds.CreateBoltDataStore("test", "/data/")
+	datastore, err := ds.CreateBoltDataStore("test", *dataDir)
 	if err != nil {
 		panic(err)
 	}

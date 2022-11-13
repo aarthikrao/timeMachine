@@ -2,6 +2,7 @@ package datastore
 
 import (
 	"bytes"
+	"fmt"
 	"strconv"
 
 	jm "github.com/aarthikrao/timeMachine/models/jobmodels"
@@ -38,14 +39,13 @@ type boltDataStore struct {
 }
 
 func CreateBoltDataStore(dbName string, path string) (*boltDataStore, error) {
-	// if path == "" {
-	// 	path = "bolt-db/"
-	// }
-	// path += dbName + ".db"
-	db, err := bolt.Open("bolt.db", 0666, nil)
+	path += "/" + dbName + ".db"
+	db, err := bolt.Open(path, 0666, nil)
 	if err != nil {
 		return nil, err
 	}
+
+	fmt.Println("Opened db:", path)
 
 	return &boltDataStore{
 		db:     db,

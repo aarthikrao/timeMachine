@@ -18,13 +18,17 @@ The idea is to build it with a storage layer based on B+tree or LSM-tree impleme
 - [TODO](./docs/TODO.md)
 
 ## 🎬 Roadmap
+- [x] *Under development*
+- [ ] *Yet to be picked*
+
+
 - [x] Core project structure
 - [x] Data storage layer
     - [x] Implement BoltDB
     - [ ] Implement Badger
     - [ ] Optimise to Messagepack, proto or avro
-- [ ] Client CRUD
-    - [ ] Rest interface
+- [x] Client CRUD
+    - [x] Rest interface
     - [ ] GRPC Interface
 - [x] Node leader election
     - [x] Implement Raft
