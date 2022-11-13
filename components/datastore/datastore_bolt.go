@@ -10,7 +10,7 @@ import (
 )
 
 // Compile time validation for Datastore interface
-var _ DataStore = &BoltDataStore{}
+var _ DataStore = &boltDataStore{}
 
 // routeCollection will contain the routing info for a DB
 var routeCollection []byte = []byte("routeCollection")
@@ -27,7 +27,7 @@ var scheduleCollection []byte = []byte("scheduleCollection")
 //	- user job collection 1
 //	- user job collection 2
 //	- user job collection n
-type BoltDataStore struct {
+type boltDataStore struct {
 	db *bolt.DB
 
 	// The Database name
@@ -37,28 +37,28 @@ type BoltDataStore struct {
 	dbPath string
 }
 
-func CreateBoltDataStore(dbName string, path string) (*BoltDataStore, error) {
-	if path == "" {
-		path = "bolt-db/"
-	}
-	path += dbName + ".db"
-	db, err := bolt.Open(path, 0666, nil)
+func CreateBoltDataStore(dbName string, path string) (*boltDataStore, error) {
+	// if path == "" {
+	// 	path = "bolt-db/"
+	// }
+	// path += dbName + ".db"
+	db, err := bolt.Open("bolt.db", 0666, nil)
 	if err != nil {
 		return nil, err
 	}
 
-	return &BoltDataStore{
+	return &boltDataStore{
 		db:     db,
 		dbName: dbName,
 		dbPath: path,
 	}, err
 }
 
-func (bds *BoltDataStore) Close() {
+func (bds *boltDataStore) Close() {
 	bds.db.Close()
 }
 
-func (bds *BoltDataStore) GetJob(collection, jobID string) (*jm.Job, error) {
+func (bds *boltDataStore) GetJob(collection, jobID string) (*jm.Job, error) {
 	// Start the transaction.
 	tx, err := bds.db.Begin(false)
 	if err != nil {
@@ -67,9 +67,9 @@ func (bds *BoltDataStore) GetJob(collection, jobID string) (*jm.Job, error) {
 	defer tx.Rollback()
 
 	// Get the job from the collection
-	bkt, err := tx.CreateBucketIfNotExists([]byte(collection))
-	if err != nil {
-		return nil, err
+	bkt := tx.Bucket([]byte(collection))
+	if bkt == nil {
+		return nil, ErrBucketNotFound
 	}
 
 	val := bkt.Get([]byte(jobID))
@@ -80,7 +80,7 @@ func (bds *BoltDataStore) GetJob(collection, jobID string) (*jm.Job, error) {
 	return jm.GetJobFromBytes(val)
 }
 
-func (bds *BoltDataStore) SetJob(collection string, job *jm.Job) error {
+func (bds *boltDataStore) SetJob(collection string, job *jm.Job) error {
 	by, err := job.ToBytes()
 	if err != nil {
 		return err
@@ -137,7 +137,7 @@ func (bds *BoltDataStore) SetJob(collection string, job *jm.Job) error {
 	return tx.Commit()
 }
 
-func (bds *BoltDataStore) DeleteJob(collection, jobID string) error {
+func (bds *boltDataStore) DeleteJob(collection, jobID string) error {
 	// Start the transaction.
 	tx, err := bds.db.Begin(true)
 	if err != nil {
@@ -153,8 +153,8 @@ func (bds *BoltDataStore) DeleteJob(collection, jobID string) error {
 		if err != nil {
 			return err
 		}
-		val := bkt.Get([]byte(jobID))
-		if val == nil {
+		jobByteValue = bkt.Get([]byte(jobID))
+		if jobByteValue == nil {
 			return ErrKeyNotFound
 		}
 
@@ -165,7 +165,10 @@ func (bds *BoltDataStore) DeleteJob(collection, jobID string) error {
 	}
 
 	// Parse the job from bytes
-	job, _ := jm.GetJobFromBytes(jobByteValue)
+	job, err := jm.GetJobFromBytes(jobByteValue)
+	if err != nil {
+		return err
+	}
 
 	// Delete the job from schedule bucket.
 	{
@@ -195,7 +198,7 @@ func (bds *BoltDataStore) DeleteJob(collection, jobID string) error {
 }
 
 // FetchJobForBucket is used to fetch all the jobs in the datastore till the provided time
-func (bds *BoltDataStore) FetchJobForBucket(collection string, minute int) ([]*jm.Job, error) {
+func (bds *boltDataStore) FetchJobForBucket(collection string, minute int) ([]*jm.Job, error) {
 	// Start the transaction.
 	tx, err := bds.db.Begin(false)
 	if err != nil {
@@ -251,7 +254,7 @@ func (bds *BoltDataStore) FetchJobForBucket(collection string, minute int) ([]*j
 	return jobs, nil
 }
 
-func (bds *BoltDataStore) GetRoute(routeID string) (*rm.Route, error) {
+func (bds *boltDataStore) GetRoute(routeID string) (*rm.Route, error) {
 	// Start the transaction.
 	tx, err := bds.db.Begin(false)
 	if err != nil {
@@ -271,7 +274,7 @@ func (bds *BoltDataStore) GetRoute(routeID string) (*rm.Route, error) {
 
 	return rm.GetRouteFromBytes(val)
 }
-func (bds *BoltDataStore) SetRoute(route *rm.Route) error {
+func (bds *boltDataStore) SetRoute(route *rm.Route) error {
 	// Start the transaction.
 	tx, err := bds.db.Begin(true)
 	if err != nil {
@@ -299,7 +302,7 @@ func (bds *BoltDataStore) SetRoute(route *rm.Route) error {
 	return tx.Commit()
 }
 
-func (bds *BoltDataStore) DeleteRoute(route string) error {
+func (bds *boltDataStore) DeleteRoute(route string) error {
 	// Start the transaction.
 	tx, err := bds.db.Begin(true)
 	if err != nil {
