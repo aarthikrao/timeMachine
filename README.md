@@ -17,7 +17,6 @@ Health check
 curl -v http://localhost:8000/health
 ```
 
-
 ## 🧬 Documentation
 - [Purpose](./docs/Purpose.md)
 - [Architecture](./docs/Architecture.md)
@@ -27,10 +26,6 @@ curl -v http://localhost:8000/health
 - [TODO](./docs/TODO.md)
 
 ## 🎬 Roadmap
-- [x] *Under development*
-- [ ] *Yet to be picked*
-
-
 - [x] Core project structure
 - [x] Data storage layer
     - [x] Implement BoltDB
