@@ -6,11 +6,20 @@ A distributed, fault tolerant scheduler database that can potentially scale to m
 
 The idea is to build it with a storage layer based on B+tree or LSM-tree implementation, consistent hashing for load balancing, and raft for consensus.
 
+## 🎯 Quick start
+```bash
+❯ go build 
+❯ ./timeMachine --datadir='data'
+```
+
+Health check
+```bash
+curl -v http://localhost:8000/health
+```
+
+
 ## 🧬 Documentation
 - [Purpose](./docs/Purpose.md)
-    - [Why are we building this ?](./docs/Purpose.md#-why-are-we-building-this)
-    - [What does it take ?](./docs/Purpose.md#-what-does-it-take)
-    - [What this is not ?](./docs/Purpose.md#-what-this-is-not)
 - [Architecture](./docs/Architecture.md)
 - [Developer APIs](./docs/DevAPI.md)
     - [Job APIs](./docs/DevAPI.md#-job-apis)
