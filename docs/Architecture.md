@@ -1,5 +1,8 @@
 # 🔮 Architecture
-Time machine follows a Scylla-like ring architecture which is inspired by Apache Cassandra, Amazon Dynamo and Google BigTable.
+We want to build a scalable, consistent, fault tolerant scheduler that is simple to use. Time machine is inspired by many projects
+* [ScyllaDB](https://github.com/scylladb/scylladb) for ring architecture and distributed writes
+* [CockroachDB](https://github.com/cockroachdb/cockroach) for consistency and scalability
+* [Redis](redis.io) for its simplicity
 
 ## 🦋 Diagram
 ![Architecture diagram](./images/vnode_distribution.png)

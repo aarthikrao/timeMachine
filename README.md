@@ -52,7 +52,9 @@ curl -v http://localhost:8000/health
     * [BoltDB](https://github.com/boltdb/bolt) and [BBoltDB](https://github.com/etcd-io/bbolt)
     * [BadgerDB](https://github.com/dgraph-io/badger)
     * [PebbleDB](https://github.com/cockroachdb/pebble)
-* Consensus: [Hashicorp raft](https://github.com/hashicorp/raft)
+* Consensus
+    * [Hashicorp raft](https://github.com/hashicorp/raft)
+    * [Etcd raft](https://github.com/etcd-io/etcd/tree/main/raft)
 * Consistent hashing: [Hashring](https://github.com/serialx/hashring)
 * Storage format
     * [MessagePack](https://github.com/vmihailenco/msgpack)
