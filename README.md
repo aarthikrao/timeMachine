@@ -6,6 +6,8 @@ A distributed, fault tolerant scheduler database that can potentially scale to m
 
 The idea is to build it with a storage layer based on B+tree or LSM-tree implementation, consistent hashing for load balancing, and raft for consensus.
 
+![Cluster animation](/docs/images/cluster_animation.gif)
+
 ## 🎯 Quick start
 ```bash
 ❯ go build 
@@ -20,9 +22,7 @@ curl -v http://localhost:8000/health
 ## 🧬 Documentation
 - [Purpose](./docs/Purpose.md)
 - [Architecture](./docs/Architecture.md)
-- [Developer APIs](./docs/DevAPI.md)
-    - [Job APIs](./docs/DevAPI.md#-job-apis)
-    - [Route APIs](./docs/DevAPI.md#-route-apis)
+- [Developer APIs](./docs/DevAPI.md) | [Job APIs](./docs/DevAPI.md#-job-apis) | [Route APIs](./docs/DevAPI.md#-route-apis)
 - [TODO](./docs/TODO.md)
 
 ## 🎬 Roadmap
