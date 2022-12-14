@@ -31,6 +31,9 @@ curl -v http://localhost:8000/health
     - [x] Implement BoltDB
     - [ ] Implement Badger
     - [ ] Optimise to Messagepack, proto or avro
+- [ ] Bash/Make script
+    - [ ] Cluster deployment
+    - [ ] Build and run tests
 - [x] Client CRUD
     - [x] Rest interface
     - [ ] GRPC Interface
@@ -42,6 +45,7 @@ curl -v http://localhost:8000/health
 - [ ] Node connection manager
     - [ ] Message passing
     - [ ] Data replication
+    - [ ] GRPC contracts for Raft
 - [ ] Properties file
     - [ ] Validation
     - [ ] Using master properties file
