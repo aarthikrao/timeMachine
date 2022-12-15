@@ -14,7 +14,7 @@ type DataStore interface {
 	DeleteJob(collection, jobID string) error
 
 	// FetchJobTill is used to fetch all the jobs in the datastore till the provided time
-	FetchJobForBucket(collection string, minute int) ([]*jm.Job, error)
+	FetchJobForBucket(minute int) ([]*jm.Job, error)
 
 	GetRoute(routeID string) (*rm.Route, error)
 	SetRoute(route *rm.Route) error

@@ -198,7 +198,7 @@ func (bds *boltDataStore) DeleteJob(collection, jobID string) error {
 }
 
 // FetchJobForBucket is used to fetch all the jobs in the datastore till the provided time
-func (bds *boltDataStore) FetchJobForBucket(collection string, minute int) ([]*jm.Job, error) {
+func (bds *boltDataStore) FetchJobForBucket(minute int) ([]*jm.Job, error) {
 	// Start the transaction.
 	tx, err := bds.db.Begin(false)
 	if err != nil {

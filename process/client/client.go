@@ -42,12 +42,12 @@ func (cp *ClientProcess) DeleteJob(collection, jobID string) error {
 }
 
 // This should be used only for developement purpose
-func (cp *ClientProcess) FetchJobForBucket(collection string, minute int) ([]*jm.Job, error) {
-	if collection == "" || minute == 0 {
+func (cp *ClientProcess) FetchJobForBucket(minute int) ([]*jm.Job, error) {
+	if minute == 0 {
 		return nil, ErrInvalidDetails
 	}
 
-	return cp.dataStore.FetchJobForBucket(collection, minute)
+	return cp.dataStore.FetchJobForBucket(minute)
 }
 
 func (cp *ClientProcess) GetRoute(routeID string) (*rm.Route, error) {
