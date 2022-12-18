@@ -35,6 +35,8 @@ func (c *ConfigFSM) Apply(rlog *raft.Log) interface{} {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
+	c.log.Info("Apply", zap.Any("rLog", rlog))
+
 	switch rlog.Type {
 	case raft.LogCommand:
 		var nc NodeConfig

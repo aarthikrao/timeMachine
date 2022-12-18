@@ -1,8 +1,10 @@
 package main
 
 import (
+	"fmt"
 	"net/http"
 
+	"github.com/aarthikrao/timeMachine/components/concensus"
 	"github.com/aarthikrao/timeMachine/handlers/rest"
 	"github.com/aarthikrao/timeMachine/process/client"
 	"github.com/gin-contrib/cors"
@@ -12,7 +14,9 @@ import (
 
 func InitTimeMachineHttpServer(
 	cp *client.ClientProcess,
+	con concensus.Concensus,
 	log *zap.Logger,
+	port int,
 ) *http.Server {
 	r := gin.Default()
 	r.Use(cors.Default())
@@ -27,6 +31,15 @@ func InitTimeMachineHttpServer(
 		})
 	})
 
+	// Cluster handlers
+	crh := rest.CreateClusterRestHandler(con, log)
+	cluster := r.Group("/cluster")
+	{
+		cluster.GET("", crh.GetStats)
+		cluster.POST("/join", crh.Join)
+		cluster.POST("/remove", crh.Remove)
+	}
+
 	// Job handlers
 	jrh := rest.CreateJobRestHandler(cp, log)
 	job := r.Group("/job")
@@ -37,7 +50,7 @@ func InitTimeMachineHttpServer(
 	}
 
 	srv := &http.Server{
-		Addr:    ":8000",
+		Addr:    fmt.Sprintf(":%d", port),
 		Handler: r,
 	}
 

@@ -13,7 +13,7 @@ type Concensus interface {
 	Remove(nodeID string) error
 
 	// Stats returns the stats of raft on this node
-	Stats() map[string]interface{}
+	Stats() map[string]string
 
 	// Returns true if the current node is leader
 	IsLeader() bool

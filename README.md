@@ -10,8 +10,23 @@ The idea is to build it with a storage layer based on B+tree or LSM-tree impleme
 
 ## 🎯 Quick start
 ```bash
+# Build 
 ❯ go build 
-❯ ./timeMachine --datadir='data'
+
+# Start 3 nodes. Create respective data folders 
+# as data/node1/data and data/node1/raft
+❯ ./timeMachine --serverID=node1 --raftPort=8101 --httpPort=8001
+❯ ./timeMachine --serverID=node2 --raftPort=8102 --httpPort=8002
+❯ ./timeMachine --serverID=node3 --raftPort=8103 --httpPort=8003
+
+# To add node2 to node1 as to form cluster
+curl -X POST 'http://localhost:8001/cluster/join' \
+-H 'Content-Type: application/json' \
+--data-raw '{
+ "node_id":"node2",
+ "raft_address":"localhost:8102"
+}'
+# Do the same thing to node3. Script coming soon
 ```
 
 Health check

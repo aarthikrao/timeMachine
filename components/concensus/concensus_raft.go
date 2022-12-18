@@ -33,7 +33,7 @@ const (
 )
 
 type raftConcensus struct {
-	raft raft.Raft
+	raft *raft.Raft
 }
 
 func NewRaftConcensus(serverID string, port int, volumeDir string, log *zap.Logger) (*raftConcensus, error) {
@@ -57,7 +57,7 @@ func NewRaftConcensus(serverID string, port int, volumeDir string, log *zap.Logg
 		return nil, err
 	}
 
-	var raftBinAddr = fmt.Sprintf(":%d", port)
+	var raftBinAddr = fmt.Sprintf("127.0.0.1:%d", port)
 	tcpAddr, err := net.ResolveTCPAddr("tcp", raftBinAddr)
 	if err != nil {
 		return nil, err
@@ -74,8 +74,23 @@ func NewRaftConcensus(serverID string, port int, volumeDir string, log *zap.Logg
 		return nil, err
 	}
 
+	// always start single server as a leader
+	configuration := raft.Configuration{
+		Servers: []raft.Server{
+			{
+				ID:       raft.ServerID(serverID),
+				Address:  transport.LocalAddr(),
+				Suffrage: raft.Voter,
+			},
+		},
+	}
+
+	if err := raftServer.BootstrapCluster(configuration).Error(); err != nil {
+		log.Error("Bootstrap error", zap.Error(err))
+	}
+
 	return &raftConcensus{
-		raft: *raftServer,
+		raft: raftServer,
 	}, nil
 }
 
