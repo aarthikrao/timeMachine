@@ -20,7 +20,7 @@ The idea is to build it with a storage layer based on B+tree or LSM-tree impleme
 ❯ ./timeMachine --serverID=node3 --raftPort=8103 --httpPort=8003
 
 # To add node2 to node1 as to form cluster
-curl -X POST 'http://localhost:8001/cluster/join' \
+❯ curl -X POST 'http://localhost:8001/cluster/join' \
 -H 'Content-Type: application/json' \
 --data-raw '{
  "node_id":"node2",
@@ -31,7 +31,7 @@ curl -X POST 'http://localhost:8001/cluster/join' \
 
 Health check
 ```bash
-curl -v http://localhost:8000/health
+❯ curl -v http://localhost:8000/health
 ```
 
 ## 🧬 Documentation
@@ -49,22 +49,26 @@ curl -v http://localhost:8000/health
 - [ ] Bash/Make script
     - [ ] Cluster deployment
     - [ ] Build and run tests
+    - [ ] Add and remove nodes
 - [x] Client CRUD
     - [x] Rest interface
-    - [ ] GRPC Interface
 - [x] Node leader election
     - [x] Implement Raft
     - [x] Implement FSM
     - [x] Add/Remove nodes
 - [ ] `vnode` leader election
+    - [ ] Failure and restart
 - [ ] Node connection manager
-    - [ ] Message passing
+    - [ ] GRPC contracts and message passing
     - [ ] Data replication
-    - [ ] GRPC contracts for Raft
 - [ ] Properties file
     - [ ] Validation
     - [ ] Using master properties file
 - [ ] Partioner Hash function
+    - [ ] Provision for clustering key
+    - [ ] Re-routing via connection manager
+- [ ] Restart, scale up and scale down handling
+    - [ ] Invoking node and `vnode` leader election
 
 ## 🛺 Tech Stack
 * Storage layer
