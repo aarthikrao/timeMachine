@@ -9,13 +9,6 @@ The idea is to build it with a storage layer based on B+tree or LSM-tree impleme
 ![Cluster animation](/docs/images/cluster_animation.gif)
 
 ## 🎯 Quick start
-```bash
-# To build and create a cluster with 3 nodes
-❯ ./create-cluster.sh 3
-
-# To check cluster health of 3 nodes
-❯ ./check-health.sh 3
-```
 
 ```bash
 # Start 3 nodes. Create respective data folders 
