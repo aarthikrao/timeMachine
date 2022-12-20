@@ -123,3 +123,19 @@ func (r *raftConcensus) Stats() map[string]string {
 func (r *raftConcensus) IsLeader() bool {
 	return r.raft.State() == raft.Leader
 }
+
+// Apply is used to apply a command to the FSM
+func (r *raftConcensus) Apply(cmd []byte) error {
+	applyResponse := r.raft.Apply(cmd, 500*time.Millisecond)
+	return applyResponse.Error()
+}
+
+// GetConfigurations returns the list of servers in the cluster
+func (r *raftConcensus) GetConfigurations() ([]raft.Server, error) {
+	cf := r.raft.GetConfiguration()
+	if err := cf.Error(); err != nil {
+		return nil, err
+	}
+
+	return cf.Configuration().Servers, nil
+}

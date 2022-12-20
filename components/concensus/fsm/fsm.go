@@ -35,7 +35,7 @@ func (c *ConfigFSM) Apply(rlog *raft.Log) interface{} {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
-	c.log.Info("Apply", zap.Any("rLog", rlog))
+	c.log.Info("Apply", zap.Any("rLog", string(rlog.Data)))
 
 	switch rlog.Type {
 	case raft.LogCommand:
@@ -44,7 +44,6 @@ func (c *ConfigFSM) Apply(rlog *raft.Log) interface{} {
 			c.log.Error("Unable to marshal rlog.Data", zap.Error(err))
 		}
 
-		c.log.Info("Updated node config")
 		c.nc = &nc
 
 		return c.nc

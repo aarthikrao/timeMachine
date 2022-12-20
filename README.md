@@ -58,6 +58,7 @@ Health check
     - [x] Add/Remove nodes
 - [ ] `vnode` leader election
     - [ ] Failure and restart
+    - [ ] `vnode` leader and follower health check
 - [ ] Node connection manager
     - [ ] GRPC contracts and message passing
     - [ ] Data replication

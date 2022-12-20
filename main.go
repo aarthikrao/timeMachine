@@ -48,6 +48,25 @@ func main() {
 	srv := InitTimeMachineHttpServer(clientProcess, raft, log, *httpPort)
 	go srv.ListenAndServe()
 
+	// Just for testing
+	// go func() {
+	// 	for {
+	// 		if raft.IsLeader() {
+	// 			log.Info("Is leader")
+	// 			val := fsm.NodeConfig{
+	// 				LastContactTime: timeUtils.GetCurrentMillis(),
+	// 			}
+	// 			by, err := json.Marshal(val)
+	// 			if err != nil {
+	// 				log.Error("Unable to marshal", zap.Error(err))
+	// 			}
+	// 			raft.Apply(by)
+	// 		}
+	// 		log.Info("sleep")
+	// 		time.Sleep(1 * time.Second)
+	// 	}
+	// }()
+
 	log.Info("Started time machine DB 🐓")
 
 	// ---------------------################-------------------------

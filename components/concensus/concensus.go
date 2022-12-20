@@ -1,5 +1,7 @@
 package concensus
 
+import "github.com/hashicorp/raft"
+
 // Concensus is responsible for electing a leader, maintaining linearizability
 // and maintaining the config and FSM in the cluster.
 type Concensus interface {
@@ -17,4 +19,10 @@ type Concensus interface {
 
 	// Returns true if the current node is leader
 	IsLeader() bool
+
+	// Apply is used to apply a command to the FSM
+	Apply(cmd []byte) error
+
+	// GetConfigurations returns a list of servers that are currently in a cluster
+	GetConfigurations() ([]raft.Server, error)
 }
