@@ -19,4 +19,5 @@ type DataStore interface {
 	GetRoute(routeID string) (*rm.Route, error)
 	SetRoute(route *rm.Route) error
 	DeleteRoute(route string) error
+	Close() error
 }
