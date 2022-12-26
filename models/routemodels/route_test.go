@@ -85,14 +85,14 @@ func TestGetRouteFromBytes(t *testing.T) {
 
 func TestValid(t *testing.T) {
 	var r Route
-	err := r.ValidM()
+	err := r.Valid()
 	if err != errInvalidRouteID {
 		t.Fail()
 		t.Log("Empty ids shouldn't be allowed")
 		return
 	}
 	r.ID = "a"
-	err = r.ValidM()
+	err = r.Valid()
 	if err == errInvalidRouteID {
 		t.Fail()
 		t.Log("Non-empty ids should be allowed")
@@ -103,7 +103,7 @@ func TestValid(t *testing.T) {
 		t.Log("Invalid route type shouldn't allowed")
 	}
 	r.Type = REST
-	err = r.ValidM()
+	err = r.Valid()
 	if err == errInvalidRouteType {
 		t.Fail()
 		t.Log("REST type route should be allowed")
@@ -114,7 +114,7 @@ func TestValid(t *testing.T) {
 		t.Log("Invalid url shouldn't be allowed")
 	}
 	r.WebhookURL = "a"
-	err = r.ValidM()
+	err = r.Valid()
 	if err == errInvalidWebhookURL {
 		t.Fail()
 		t.Log("Valid webhook should be allowed")
