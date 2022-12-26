@@ -11,7 +11,7 @@ import (
 )
 
 // Compile time validation for Datastore interface
-var _ DataStore = &boltDataStore{}
+var _ DataStoreConn = &boltDataStore{}
 
 // routeCollection will contain the routing info for a DB
 var routeCollection []byte = []byte("routeCollection")
@@ -22,19 +22,19 @@ var scheduleCollection []byte = []byte("scheduleCollection")
 // It uses BoltDB which uses B+tree implementation.
 // The data is stored in the below format
 //   - routeCollection (contains routes for this DB)
-//   - scheduleCollection (contains minute wise buckets for all the collections)
-//   - minutewise buckets
-//   - timestamp : uniqueJobID
-//   - user job collection 1
-//   - user job collection 2
-//   - user job collection n
+//     -- scheduleCollection (contains minute wise buckets for all the collections)
+//     --- minutewise buckets
+//     --- timestamp : uniqueJobID
+//     --- user job collection 1
+//     --- user job collection 2
+//     --- user job collection n
 type boltDataStore struct {
 	db *bolt.DB
 
 	dbFilePath string
 }
 
-func CreateBoltDataStore(path string) (DataStore, error) {
+func CreateBoltDataStore(path string) (DataStoreConn, error) {
 	db, err := bolt.Open(path, 0666, nil)
 	if err != nil {
 		return nil, err
