@@ -3,10 +3,13 @@ module github.com/aarthikrao/timeMachine
 go 1.18
 
 require (
+	github.com/buraksezer/consistent v0.10.0
+	github.com/cespare/xxhash v1.1.0
 	github.com/gin-contrib/cors v1.4.0
 	github.com/gin-gonic/gin v1.8.1
 	github.com/hashicorp/raft v1.3.11
 	github.com/hashicorp/raft-boltdb/v2 v2.2.2
+	github.com/vmihailenco/msgpack/v5 v5.3.5
 	go.etcd.io/bbolt v1.3.6
 	go.uber.org/zap v1.24.0
 )
@@ -31,7 +34,6 @@ require (
 	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/pelletier/go-toml/v2 v2.0.6 // indirect
 	github.com/ugorji/go/codec v1.2.7 // indirect
-	github.com/vmihailenco/msgpack/v5 v5.3.5 // indirect
 	github.com/vmihailenco/tagparser/v2 v2.0.0 // indirect
 	go.uber.org/atomic v1.10.0 // indirect
 	go.uber.org/multierr v1.9.0 // indirect
