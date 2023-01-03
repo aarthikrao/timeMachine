@@ -6,6 +6,12 @@ A distributed, fault tolerant scheduler database that can potentially scale to m
 
 The idea is to build it with a storage layer based on B+tree or LSM-tree implementation, consistent hashing for load balancing, and raft for consensus.
 
+## 🧬 Documentation
+- [Purpose](./docs/Purpose.md)
+- [Architecture](./docs/Architecture.md) • [Components of a node](/components/Components.md) • [Also read](./docs/Refer.md)
+- [Developer APIs](./docs/DevAPI.md) • [Job APIs](./docs/DevAPI.md#-job-apis) • [Route APIs](./docs/DevAPI.md#-route-apis)
+- [TODO](./docs/TODO.md)
+
 ![Cluster animation](/docs/images/cluster_animation.gif)
 
 ## 🎯 Quick start
@@ -30,21 +36,14 @@ The idea is to build it with a storage layer based on B+tree or LSM-tree impleme
 # More scripts coming soon
 ```
 
-## 🧬 Documentation
-- [Purpose](./docs/Purpose.md)
-- [Architecture](./docs/Architecture.md)
-- [Developer APIs](./docs/DevAPI.md) | [Job APIs](./docs/DevAPI.md#-job-apis) | [Route APIs](./docs/DevAPI.md#-route-apis)
-- [TODO](./docs/TODO.md)
-
 ## 🎬 Roadmap
 - [x] Core project structure
 - [x] Data storage layer
     - [x] Implement BoltDB
-    - [ ] Implement Badger
     - [ ] Optimise to Messagepack, proto or avro
-- [ ] Bash/Make script
-    - [ ] Cluster deployment
-    - [ ] Build and run tests
+- [x] Bash/Make script
+    - [x] Cluster deployment
+    - [x] Build and run tests
     - [ ] Add and remove nodes
 - [x] Client CRUD
     - [x] Rest interface
@@ -61,29 +60,20 @@ The idea is to build it with a storage layer based on B+tree or LSM-tree impleme
 - [ ] Properties file
     - [ ] Validation
     - [ ] Using master properties file
-- [ ] Partioner Hash function
+- [x] Partioner Hash function
+    - [x] Hashring algorithm
+    - [x] Adding and removing nodes
     - [ ] Provision for clustering key
     - [ ] Re-routing via connection manager
 - [ ] Restart, scale up and scale down handling
     - [ ] Invoking node and `vnode` leader election
+- [ ] Job executor
+    - [ ] Hybrid logical clock
+    - [ ] Rest caller
+    - [ ] Concensus during publish
 
 ## 🛺 Tech Stack
-* Storage layer
-    * [BoltDB](https://github.com/boltdb/bolt) and [BBoltDB](https://github.com/etcd-io/bbolt)
-    * [BadgerDB](https://github.com/dgraph-io/badger)
-    * [PebbleDB](https://github.com/cockroachdb/pebble)
-* Consensus
-    * [Hashicorp raft](https://github.com/hashicorp/raft)
-    * [Etcd raft](https://github.com/etcd-io/etcd/tree/main/raft)
-* Consistent hashing: [Hashring](https://github.com/serialx/hashring)
-* Storage format
-    * [MessagePack](https://github.com/vmihailenco/msgpack)
-    * [Avro](https://github.com/hamba/avro)
-* Message passing: [GRPC](https://github.com/grpc/grpc-go)
-* Clients
-    * REST
-    * CLI on rest
-* and more ...
+Refer [Tech stack](/docs/Refer.md#🛺-tech-stack)
 
 ## ⚽ Contribute
 Coming soon. Join our discord server till then
