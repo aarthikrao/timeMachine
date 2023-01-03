@@ -20,3 +20,8 @@ type DataStore interface {
 	SetRoute(route *rm.Route) error
 	DeleteRoute(route string) error
 }
+
+type DataStoreConn interface {
+	DataStore
+	Close() error
+}

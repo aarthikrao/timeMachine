@@ -30,7 +30,7 @@ func main() {
 	raftDataDir := baseDir + "/raft"
 
 	// Initialise datastore
-	datastore, err := ds.CreateBoltDataStore("test", boltDataDir)
+	datastore, err := ds.CreateBoltDataStore(boltDataDir + "/" + "test")
 	if err != nil {
 		panic(err)
 	}

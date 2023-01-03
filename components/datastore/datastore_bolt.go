@@ -2,7 +2,7 @@ package datastore
 
 import (
 	"bytes"
-	"fmt"
+	"log"
 	"strconv"
 
 	jm "github.com/aarthikrao/timeMachine/models/jobmodels"
@@ -11,7 +11,7 @@ import (
 )
 
 // Compile time validation for Datastore interface
-var _ DataStore = &boltDataStore{}
+var _ DataStoreConn = &boltDataStore{}
 
 // routeCollection will contain the routing info for a DB
 var routeCollection []byte = []byte("routeCollection")
@@ -21,41 +21,36 @@ var scheduleCollection []byte = []byte("scheduleCollection")
 
 // It uses BoltDB which uses B+tree implementation.
 // The data is stored in the below format
-//   - routeCollection (contains routes for this DB)
-//   - scheduleCollection (contains minute wise buckets for all the collections)
-//   - minutewise buckets
-//   - timestamp : uniqueJobID
-//   - user job collection 1
-//   - user job collection 2
-//   - user job collection n
+//   ∟ routeCollection (contains routes for this DB)
+//   ∟ scheduleCollection (contains minute wise buckets for all the collections)
+//       ∟ minutewise buckets
+//          ∟ timestamp : uniqueJobID
+//   ∟ user job collection 1
+//   ∟ user job collection 2
+//   ∟ user job collection n
+
 type boltDataStore struct {
 	db *bolt.DB
 
-	// The Database name
-	dbName string
-
-	// Data dbPath
-	dbPath string
+	dbFilePath string
 }
 
-func CreateBoltDataStore(dbName string, path string) (*boltDataStore, error) {
-	path += "/" + dbName + ".db"
+func CreateBoltDataStore(path string) (DataStoreConn, error) {
 	db, err := bolt.Open(path, 0666, nil)
 	if err != nil {
 		return nil, err
 	}
 
-	fmt.Println("Opened db:", path)
+	log.Println("Opened db instance at:", path)
 
 	return &boltDataStore{
-		db:     db,
-		dbName: dbName,
-		dbPath: path,
+		db:         db,
+		dbFilePath: path,
 	}, err
 }
 
-func (bds *boltDataStore) Close() {
-	bds.db.Close()
+func (bds *boltDataStore) Close() error {
+	return bds.db.Close()
 }
 
 func (bds *boltDataStore) GetJob(collection, jobID string) (*jm.Job, error) {
