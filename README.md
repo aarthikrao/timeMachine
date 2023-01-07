@@ -76,4 +76,11 @@ The idea is to build it with a storage layer based on B+tree or LSM-tree impleme
 Refer [Tech stack](/docs/Refer.md#🛺-tech-stack)
 
 ## ⚽ Contribute
-Coming soon. Join our discord server till then
+* Choose a component to work on.
+* Research the component thoroughly.
+* Reach out to me, so that I can mark it as "Work in Progress" to prevent duplication of efforts.
+* Build, code, and test the component.
+* Submit a pull request (PR) when you are ready to have your changes reviewed.
+
+
+Refer [Contributing](./CONTRIBUTING.md) for more

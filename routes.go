@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/aarthikrao/timeMachine/components/client"
 	"github.com/aarthikrao/timeMachine/components/concensus"
 	"github.com/aarthikrao/timeMachine/handlers/rest"
-	"github.com/aarthikrao/timeMachine/process/client"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"

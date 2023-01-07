@@ -7,9 +7,9 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/aarthikrao/timeMachine/components/client"
 	"github.com/aarthikrao/timeMachine/components/concensus"
 	ds "github.com/aarthikrao/timeMachine/components/datastore"
-	"github.com/aarthikrao/timeMachine/process/client"
 	"go.uber.org/zap"
 )
 

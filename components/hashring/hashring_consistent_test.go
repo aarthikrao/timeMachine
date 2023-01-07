@@ -1,7 +1,6 @@
 package hashring
 
 import (
-	"fmt"
 	"reflect"
 	"testing"
 )
@@ -59,7 +58,6 @@ func Test_consistentHashing_GetKeyLocations(t *testing.T) {
 				t.Errorf("consistentHashing.GetKeyLocations() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			fmt.Println(got)
 			if !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("consistentHashing.GetKeyLocations() = %v, want %v", got, tt.want)
 			}
