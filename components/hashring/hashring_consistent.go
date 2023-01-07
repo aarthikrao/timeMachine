@@ -77,7 +77,7 @@ func (cr *consistentHashing) GetNewNodeDelta(nodeID string) map[string][]int {
 	m := member(nodeID)
 	newMembers = append(newMembers, m)
 
-	// create a new ring
+	// Create a new ring
 	c := consistent.New(newMembers, cr.config)
 
 	delta := make(map[string][]int)
@@ -99,4 +99,36 @@ func (cr *consistentHashing) AddNewNode(nodeID string) {
 	// Add new member
 	m := member(nodeID)
 	cr.c.Add(m)
+}
+
+func (cr *consistentHashing) GetRemoveNodeDelta(nodeID string) (map[string][]int, error) {
+	oldMembers := cr.c.GetMembers()
+	var newMembers []consistent.Member
+
+	for _, mem := range oldMembers {
+		if mem.String() != nodeID {
+			newMembers = append(newMembers, mem)
+		}
+	}
+
+	// Create a new ring
+	c := consistent.New(newMembers, cr.config)
+
+	delta := make(map[string][]int)
+
+	for partID := 0; partID < cr.config.PartitionCount; partID++ {
+		oldOwner := cr.c.GetPartitionOwner(partID).String()
+		newOwner := c.GetPartitionOwner(partID).String()
+
+		// if the partition has changed, add it to delta
+		if oldOwner != newOwner {
+			delta[newOwner] = append(delta[newOwner], partID)
+		}
+	}
+
+	return delta, nil
+}
+
+func (cr *consistentHashing) RemoveNode(nodeID string) {
+	cr.c.Remove(nodeID)
 }

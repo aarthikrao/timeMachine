@@ -21,7 +21,7 @@ type HashRing interface {
 	// GetRemoveNodeDelta returns the new node vs the list of partitions to be moved to them post removing
 	// the node. This does not actually delete the node. Refer GetNewNodeDelta.
 	// To remove the node from the cluster, use RemoveNode method.
-	GetRemoveNodeDelta(nodeID string) (map[string][]string, error)
+	GetRemoveNodeDelta(nodeID string) (map[string][]int, error)
 
 	// RemoveNode removes the node from the cluster. This method must be called only once
 	// the data transfer to other nodes has been confirmed. Any calls to GetKeyLocations post this call
