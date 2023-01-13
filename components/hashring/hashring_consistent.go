@@ -46,6 +46,7 @@ func NewConsistentHashing(partitionCount int, replicationFactor int, existingNod
 
 	return &consistentHashing{
 		c:        c,
+		config:   cfg,
 		replicas: 3,
 	}
 }
