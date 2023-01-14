@@ -17,63 +17,33 @@ The idea is to build it with a storage layer based on B+tree or LSM-tree impleme
 ## 🎯 Quick start
 
 ```bash
-# Start 3 nodes. Create respective data folders 
-# as data/node1/data and data/node1/raft
-./create-cluster.sh 3
+# Build 
+❯ go build
 
-# To add node2 to node1 as to form cluster
-❯ curl -X POST 'http://localhost:8001/cluster/join' \
--H 'Content-Type: application/json' \
---data-raw '{
- "node_id":"node2",
- "raft_address":"localhost:8102"
-}'
-# Do the same thing to node3.
+# Clean and create 5 data folders
+❯ ./scripts/clean-create.sh 5
 
-# To check cluster health of 3 nodes
-❯ ./check-health.sh 3
+# Spawn 5 instances
+❯ ./scripts/spawn.sh 5 true
 
-# More scripts coming soon
+# Create a cluster
+❯ ./scripts/join.sh 5
+
+# Check status
+❯ ./scripts/status.sh 5
 ```
+Checkout the [detailed guide](/docs/Setup.md)
 
 ## 🎬 Roadmap
-- [x] Core project structure
-- [x] Data storage layer
-    - [x] Implement BoltDB
-    - [ ] Optimise to Messagepack, proto or avro
-- [x] Bash/Make script
-    - [x] Cluster deployment
-    - [x] Build and run tests
-    - [ ] Add and remove nodes
-- [x] Client CRUD
-    - [x] Rest interface
-- [x] Node leader election
-    - [x] Implement Raft
-    - [x] Implement FSM
-    - [x] Add/Remove nodes
-- [ ] `vnode` leader election
-    - [ ] Failure and restart
-    - [ ] `vnode` leader and follower health check
-- [ ] Node connection manager
-    - [ ] GRPC contracts and message passing
-    - [ ] Data replication
-- [ ] Properties file
-    - [ ] Validation
-    - [ ] Using master properties file
-- [x] Partioner Hash function
-    - [x] Hashring algorithm
-    - [x] Adding and removing nodes
-    - [ ] Provision for clustering key
-    - [ ] Re-routing via connection manager
-- [ ] Restart, scale up and scale down handling
-    - [ ] Invoking node and `vnode` leader election
-- [ ] Job executor
-    - [ ] Hybrid logical clock
-    - [ ] Rest caller
-    - [ ] Concensus during publish
+You can find the [roadmap here](/docs/Roadmap.md)
 
 ## 🛺 Tech Stack
-Refer [Tech stack](/docs/Refer.md#🛺-tech-stack)
+Time machine is built on 
+* [BBoltDB](https://github.com/etcd-io/bbolt)
+* [Raft](https://raft.github.io/)
+* [Consistent hashing](https://en.wikipedia.org/wiki/Consistent_hashing)
+
+For more details checkout our [Tech stack](/docs/Refer.md#🛺-tech-stack)
 
 ## ⚽ Contribute
 * Choose a component to work on.
