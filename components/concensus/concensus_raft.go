@@ -36,7 +36,7 @@ type raftConcensus struct {
 	raft *raft.Raft
 }
 
-func NewRaftConcensus(serverID string, port int, volumeDir string, log *zap.Logger) (*raftConcensus, error) {
+func NewRaftConcensus(serverID string, port int, volumeDir string, log *zap.Logger, bootstrap bool) (*raftConcensus, error) {
 	raftConf := raft.DefaultConfig()
 	raftConf.LocalID = raft.ServerID(serverID)
 	raftConf.SnapshotThreshold = 1024
@@ -74,19 +74,21 @@ func NewRaftConcensus(serverID string, port int, volumeDir string, log *zap.Logg
 		return nil, err
 	}
 
-	// always start single server as a leader
-	configuration := raft.Configuration{
-		Servers: []raft.Server{
-			{
-				ID:       raft.ServerID(serverID),
-				Address:  transport.LocalAddr(),
-				Suffrage: raft.Voter,
+	if bootstrap {
+		// always start single server as a leader
+		configuration := raft.Configuration{
+			Servers: []raft.Server{
+				{
+					ID:      raft.ServerID(serverID),
+					Address: transport.LocalAddr(),
+					// Suffrage: raft.Voter,
+				},
 			},
-		},
-	}
+		}
 
-	if err := raftServer.BootstrapCluster(configuration).Error(); err != nil {
-		log.Error("Bootstrap error", zap.Error(err))
+		if err := raftServer.BootstrapCluster(configuration).Error(); err != nil {
+			log.Error("Bootstrap error", zap.Error(err))
+		}
 	}
 
 	return &raftConcensus{
