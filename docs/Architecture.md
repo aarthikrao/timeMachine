@@ -4,6 +4,11 @@ We want to build a scalable, consistent, fault tolerant scheduler that is simple
 * [CockroachDB](https://github.com/cockroachdb/cockroach) for consistency and scalability
 * [Redis](redis.io) for its simplicity
 
+## ⚙️ Design choices
+* Node discovery, Failure detection, Membership management - Raft concensus
+* Data replication, Consistency - Partitioned master slave with tunable consistency
+* Load balancing, Data partitioning - Consistent hashing with `vnode` partitioning
+
 ## 🦋 Diagram
 ![Architecture diagram](./images/vnode_distribution.png)
 
