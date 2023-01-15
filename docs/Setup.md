@@ -5,6 +5,10 @@
 ❯ go test ./...
 ❯ go build
 ```
+Alternatively, if you choose to build the proto files 
+```bash
+❯ ./scripts/build.sh
+```
 
 ### Clean and data and raft folders
 ```bash

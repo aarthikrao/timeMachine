@@ -1,9 +1,6 @@
 #!/bin/bash
 # This script was generated with the help of ChatGPT
 
-# Build the binary
-go build
-
 # Set the number of nodes in the cluster
 num_nodes=$1
 
