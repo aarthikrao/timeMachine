@@ -1,5 +1,5 @@
 # Time Machine DB 🐓
-[![Discord](https://img.shields.io/badge/Discord-%235865F2.svg?style=for-the-badge&logo=discord&logoColor=white)](https://discord.gg/pDGNPj3dTM) 
+[![Slack](https://img.shields.io/badge/Slack-4A154B?style=for-the-badge&logo=slack&logoColor=white)](https://join.slack.com/t/timemachinedb/shared_invite/zt-1nnti899g-6XppaC~5kqF0QAqALBgxqw) 
 ![Status](https://img.shields.io/badge/Status-Ideation-ffb3ff?style=for-the-badge)
 
 A distributed, fault tolerant scheduler database that can potentially scale to millions of jobs. 
@@ -54,3 +54,5 @@ For more details checkout our [Tech stack](/docs/Refer.md#🛺-tech-stack)
 
 
 Refer [Contributing](./CONTRIBUTING.md) for more
+
+![Top Langs](https://github-readme-stats.vercel.app/api/top-langs/?username=aarthikrao)
