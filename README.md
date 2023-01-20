@@ -54,5 +54,3 @@ For more details checkout our [Tech stack](/docs/Refer.md#🛺-tech-stack)
 
 
 Refer [Contributing](./CONTRIBUTING.md) for more
-
-![Top Langs](https://github-readme-stats.vercel.app/api/top-langs/?username=aarthikrao)
