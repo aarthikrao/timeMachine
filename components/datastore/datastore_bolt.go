@@ -21,13 +21,13 @@ var scheduleCollection []byte = []byte("scheduleCollection")
 
 // It uses BoltDB which uses B+tree implementation.
 // The data is stored in the below format
-//	- routeCollection (contains routes for this DB)
-//	- scheduleCollection (contains minute wise buckets for all the collections)
-// 		- minutewise buckets
-// 			- timestamp : uniqueJobID
-//	- user job collection 1
-//	- user job collection 2
-//	- user job collection n
+//   - routeCollection (contains routes for this DB)
+//   - scheduleCollection (contains minute wise buckets for all the collections)
+//   - minutewise buckets
+//   - timestamp : uniqueJobID
+//   - user job collection 1
+//   - user job collection 2
+//   - user job collection n
 type boltDataStore struct {
 	db *bolt.DB
 
@@ -127,7 +127,7 @@ func (bds *boltDataStore) SetJob(collection string, job *jm.Job) error {
 		// Insert the schedule in the minute wise bucket
 		if err = minuteBkt.Put(
 			job.GetUniqueKey(collection),
-			job.StringifyTriggerTime(),
+			job.TriggerTimeBytes(),
 		); err != nil {
 			return err
 		}
