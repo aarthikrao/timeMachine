@@ -1,6 +1,12 @@
 // hashring uses consistent hashing to store the keys in a distributed sequence across the cluster denoted by the ring.
 package hashring
 
+import "errors"
+
+var (
+	ErrNodeIDDoesntExist = errors.New("node id does not exist")
+)
+
 // HashRing expects a consistent hash ring to distribute the keys across the cluster in a ring architecture.
 type HashRing interface {
 

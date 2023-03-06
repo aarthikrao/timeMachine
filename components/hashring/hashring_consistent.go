@@ -67,7 +67,7 @@ func (cr *consistentHashing) GetKeyLocations(key []byte) ([]string, error) {
 
 // GetNewNodeDelta creates a new instance of consistent hashring and returns the diff
 // between current and new configuration so that partitions can be moved around
-func (cr *consistentHashing) GetNewNodeDelta(nodeID string) map[string][]int {
+func (cr *consistentHashing) GetNewNodeDelta(nodeID string) (map[string][]int, float64) {
 	oldMembers := cr.c.GetMembers()
 	var newMembers []consistent.Member
 
@@ -81,7 +81,11 @@ func (cr *consistentHashing) GetNewNodeDelta(nodeID string) map[string][]int {
 	// Create a new ring
 	c := consistent.New(newMembers, cr.config)
 
+	// stores the delta paritions to move.
 	delta := make(map[string][]int)
+
+	// Change count
+	var change float64
 
 	for partID := 0; partID < cr.config.PartitionCount; partID++ {
 		oldOwner := cr.c.GetPartitionOwner(partID).String()
@@ -90,10 +94,11 @@ func (cr *consistentHashing) GetNewNodeDelta(nodeID string) map[string][]int {
 		// if the partition has changed, add it to delta
 		if oldOwner != newOwner {
 			delta[newOwner] = append(delta[newOwner], partID)
+			change++
 		}
 	}
 
-	return delta
+	return delta, (change / float64(cr.config.PartitionCount) * 100)
 }
 
 func (cr *consistentHashing) AddNewNode(nodeID string) {
@@ -102,7 +107,7 @@ func (cr *consistentHashing) AddNewNode(nodeID string) {
 	cr.c.Add(m)
 }
 
-func (cr *consistentHashing) GetRemoveNodeDelta(nodeID string) (map[string][]int, error) {
+func (cr *consistentHashing) GetRemoveNodeDelta(nodeID string) (map[string][]int, int, error) {
 	oldMembers := cr.c.GetMembers()
 	var newMembers []consistent.Member
 
@@ -112,10 +117,19 @@ func (cr *consistentHashing) GetRemoveNodeDelta(nodeID string) (map[string][]int
 		}
 	}
 
+	if len(oldMembers) == len(newMembers) {
+		// There has been no change
+		return nil, 0, ErrNodeIDDoesntExist
+	}
+
 	// Create a new ring
 	c := consistent.New(newMembers, cr.config)
 
+	// stores the delta paritions to move.
 	delta := make(map[string][]int)
+
+	// Change count
+	change := 0
 
 	for partID := 0; partID < cr.config.PartitionCount; partID++ {
 		oldOwner := cr.c.GetPartitionOwner(partID).String()
@@ -124,10 +138,11 @@ func (cr *consistentHashing) GetRemoveNodeDelta(nodeID string) (map[string][]int
 		// if the partition has changed, add it to delta
 		if oldOwner != newOwner {
 			delta[newOwner] = append(delta[newOwner], partID)
+			change++
 		}
 	}
 
-	return delta, nil
+	return delta, (change / cr.config.PartitionCount * 100), nil
 }
 
 func (cr *consistentHashing) RemoveNode(nodeID string) {

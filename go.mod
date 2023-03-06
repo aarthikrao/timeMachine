@@ -12,6 +12,7 @@ require (
 	github.com/vmihailenco/msgpack/v5 v5.3.5
 	go.etcd.io/bbolt v1.3.6
 	go.uber.org/zap v1.24.0
+	google.golang.org/protobuf v1.28.1
 )
 
 require (
@@ -41,6 +42,5 @@ require (
 	golang.org/x/net v0.4.0 // indirect
 	golang.org/x/sys v0.3.0 // indirect
 	golang.org/x/text v0.5.0 // indirect
-	google.golang.org/protobuf v1.28.1 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 )
