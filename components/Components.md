@@ -2,4 +2,8 @@
 
 ![components](../docs/images/components.png)
 
-For more info on individual component, refer the package comments.
+## Components
+1. [Client interface](./client/client.go)
+2. [Concensus](./concensus/Concensus.md)
+3. [Data store](./datastore/datastore.go)
+4. [Distributed hash table](./dht/dht.md)
