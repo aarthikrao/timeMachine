@@ -1,5 +1,15 @@
 package dht
 
+import "errors"
+
+var (
+	// ErrMismatchedSlotsInfo indicates that the slot numbers may be duplicate or mismatched
+	ErrMismatchedSlotsInfo = errors.New("mismatched slot info")
+
+	// ErrDuplicateSlots indicates that there exsists duplicate slots in the input
+	ErrDuplicateSlots = errors.New("duplicate slots")
+)
+
 type SlotInfo struct {
 	Slot int    `json:"slot,omitempty"`
 	Node string `json:"node,omitempty"`
@@ -9,12 +19,15 @@ type SlotInfo struct {
 type DHT interface {
 
 	// Snapshot returns the node vs slot ids map.
-	Snapshot() (nodeVsSlots map[string][]int, err error)
+	Snapshot() (slotVsNode map[int]string)
 
 	// Returns the location of the primary and relica slots and corresponding nodes
-	GetLocation() (slots []SlotInfo)
+	GetLocation(key string) (slots []SlotInfo)
 
-	// MoveSlot reassigns the slot to a particular node.
+	// UpdateSlot reassigns the slot to a particular node.
 	// Only called after confirmation from master
-	MoveSlot(slot int, fromNode, toNode string) (err error)
+	UpdateSlot(slot int, fromNode, toNode string) (err error)
+
+	// Returns a possible slot to migrate.
+	Propose() (slot int, fromNode, toNode string, err error)
 }

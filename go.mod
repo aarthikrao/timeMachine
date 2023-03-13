@@ -3,8 +3,7 @@ module github.com/aarthikrao/timeMachine
 go 1.18
 
 require (
-	github.com/buraksezer/consistent v0.10.0
-	github.com/cespare/xxhash v1.1.0
+	github.com/cespare/xxhash/v2 v2.1.1
 	github.com/gin-contrib/cors v1.4.0
 	github.com/gin-gonic/gin v1.8.1
 	github.com/hashicorp/raft v1.3.11
