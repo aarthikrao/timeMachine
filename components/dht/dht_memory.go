@@ -12,13 +12,19 @@ type dht struct {
 	slotVsNodes map[int]string
 }
 
+func Create() *dht {
+	return &dht{}
+}
+
 // Creates a new distributed hash table from the inputs.
 // Should be called only from bootstrap mode or while creating a new cluster
-func CreateDHT(slotCount int, nodes []string) (*dht, error) {
-	d := &dht{
-		slotCount:   slotCount,
-		slotVsNodes: make(map[int]string),
+func (d *dht) Initialise(slotCount int, nodes []string) error {
+	if len(d.slotVsNodes) > 0 {
+		return ErrAlreadyInitialised
 	}
+
+	d.slotCount = slotCount
+	d.slotVsNodes = make(map[int]string)
 
 	nodeCount := len(nodes)
 	distribution := make([]int, nodeCount)
@@ -34,16 +40,19 @@ func CreateDHT(slotCount int, nodes []string) (*dht, error) {
 		}
 	}
 
-	return d, nil
+	return nil
 }
 
-// Loads data from a already existing configuration. This mus be called at the
-// starting of the application and must be taken only from the master.
-func Load(nodeVsSlots map[string][]int) (*dht, error) {
-	slotCount := 0
-	d := &dht{
-		slotVsNodes: make(map[int]string),
+// Loads data from a already existing configuration.
+// This must be taken called after confirmation from the master
+func (d *dht) Load(nodeVsSlots map[string][]int) error {
+	if len(d.slotVsNodes) > 0 {
+		return ErrAlreadyInitialised
 	}
+
+	slotCount := 0
+	d.slotVsNodes = make(map[int]string)
+
 	for nodeID, slots := range nodeVsSlots {
 		for _, slot := range slots {
 			d.slotVsNodes[slot] = nodeID
@@ -52,11 +61,11 @@ func Load(nodeVsSlots map[string][]int) (*dht, error) {
 	}
 
 	if len(d.slotVsNodes) != slotCount {
-		return nil, ErrDuplicateSlots
+		return ErrDuplicateSlots
 	}
 	d.slotCount = slotCount
 
-	return d, nil
+	return nil
 }
 
 // Snapshot returns the node vs slot ids map.
@@ -65,7 +74,11 @@ func (d *dht) Snapshot() (slotVsNode map[int]string) {
 }
 
 // Returns the location of the primary and relica slots and corresponding nodes
-func (d *dht) GetLocation(key string) (slots []SlotInfo) {
+func (d *dht) GetLocation(key string) (slots []SlotInfo, err error) {
+	if len(d.slotVsNodes) == 0 {
+		return nil, ErrNotInitialised
+	}
+
 	location1 := d.hash(key) % d.slotCount
 	node1 := d.slotVsNodes[int(location1)]
 
@@ -82,12 +95,16 @@ func (d *dht) GetLocation(key string) (slots []SlotInfo) {
 			Slot: location2,
 			Node: node2,
 		},
-	}
+	}, nil
 }
 
 // UpdateSlot reassigns the slot to a particular node.
 // Only called after confirmation from master
 func (d *dht) UpdateSlot(slot int, fromNode, toNode string) (err error) {
+	if len(d.slotVsNodes) == 0 {
+		return ErrNotInitialised
+	}
+
 	// Confirm the current location
 	if d.slotVsNodes[slot] != fromNode {
 		return ErrMismatchedSlotsInfo
@@ -100,6 +117,9 @@ func (d *dht) UpdateSlot(slot int, fromNode, toNode string) (err error) {
 // TODO
 // Propose will choose a slot to move from a node which currently has the max number of slots.
 func (d *dht) Propose() (slot int, fromNode, toNode string, err error) {
+	if len(d.slotVsNodes) == 0 {
+		return 0, "", "", ErrNotInitialised
+	}
 
 	return 0, "", "", nil
 }

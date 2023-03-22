@@ -1,7 +1,6 @@
 package dht
 
 import (
-	"fmt"
 	"reflect"
 	"testing"
 )
@@ -9,12 +8,11 @@ import (
 var d *dht
 
 func init() {
-	var err error
-	d, err = CreateDHT(12, []string{"node1", "node2", "node3"})
+	d = Create()
+	err := d.Initialise(12, []string{"node1", "node2", "node3"})
 	if err != nil {
 		panic(err)
 	}
-	fmt.Println("SlotCount", d.slotCount, " Nodes:", d.slotVsNodes)
 }
 
 func Test_dht_GetLocation(t *testing.T) {
@@ -25,6 +23,7 @@ func Test_dht_GetLocation(t *testing.T) {
 		name      string
 		args      args
 		wantSlots []SlotInfo
+		wantErr   bool
 	}{
 		{
 			name: "Key-A",
@@ -38,6 +37,7 @@ func Test_dht_GetLocation(t *testing.T) {
 					Node: "node1",
 				},
 			},
+			wantErr: false,
 		}, {
 			name: "Key-{abcdefg}",
 			args: args{key: "Key-{abcdefg}"},
@@ -50,11 +50,17 @@ func Test_dht_GetLocation(t *testing.T) {
 					Node: "node2",
 				},
 			},
+			wantErr: false,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if gotSlots := d.GetLocation(tt.args.key); !reflect.DeepEqual(gotSlots, tt.wantSlots) {
+			gotSlots, err := d.GetLocation(tt.args.key)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("dht.GetLocation() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(gotSlots, tt.wantSlots) {
 				t.Errorf("dht.GetLocation() = %v, want %v", gotSlots, tt.wantSlots)
 			}
 		})
