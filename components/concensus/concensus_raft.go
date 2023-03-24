@@ -32,6 +32,8 @@ const (
 	raftLogCacheSize = 512
 )
 
+var _ Concensus = &raftConcensus{}
+
 type raftConcensus struct {
 	raft *raft.Raft
 }
@@ -124,6 +126,11 @@ func (r *raftConcensus) Stats() map[string]string {
 // Returns true if the current node is leader
 func (r *raftConcensus) IsLeader() bool {
 	return r.raft.State() == raft.Leader
+}
+
+// Returns address of the leader
+func (r *raftConcensus) GetLeaderAddress() string {
+	return string(r.raft.Leader())
 }
 
 // Apply is used to apply a command to the FSM
