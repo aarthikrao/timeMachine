@@ -16,11 +16,6 @@ var (
 	ErrNotInitialised = errors.New("dht not initialised")
 )
 
-type SlotInfo struct {
-	Slot int    `json:"slot,omitempty"`
-	Node string `json:"node,omitempty"`
-}
-
 // DHT contains the location of a given key in a distributed data system.
 type DHT interface {
 
@@ -36,7 +31,8 @@ type DHT interface {
 	Snapshot() (slotVsNode map[int]string)
 
 	// Returns the location of the primary and relica slots and corresponding nodes
-	GetLocation(key string) (slots []SlotInfo)
+	// map[SlotNumber]NodeID
+	GetLocation(key string) (slots map[string]int, err error)
 
 	// UpdateSlot reassigns the slot to a particular node.
 	// Only called after confirmation from master

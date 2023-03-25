@@ -74,7 +74,7 @@ func (d *dht) Snapshot() (slotVsNode map[int]string) {
 }
 
 // Returns the location of the primary and relica slots and corresponding nodes
-func (d *dht) GetLocation(key string) (slots []SlotInfo, err error) {
+func (d *dht) GetLocation(key string) (slots map[string]int, err error) {
 	if len(d.slotVsNodes) == 0 {
 		return nil, ErrNotInitialised
 	}
@@ -86,15 +86,9 @@ func (d *dht) GetLocation(key string) (slots []SlotInfo, err error) {
 	location2 := (location1 + d.slotCount/2) % d.slotCount
 	node2 := d.slotVsNodes[int(location2)]
 
-	return []SlotInfo{
-		{
-			Slot: location1,
-			Node: node1,
-		},
-		{
-			Slot: location2,
-			Node: node2,
-		},
+	return map[string]int{
+		node1: location1,
+		node2: location2,
 	}, nil
 }
 

@@ -22,33 +22,23 @@ func Test_dht_GetLocation(t *testing.T) {
 	tests := []struct {
 		name      string
 		args      args
-		wantSlots []SlotInfo
+		wantSlots map[string]int
 		wantErr   bool
 	}{
 		{
 			name: "Key-A",
 			args: args{key: "Key-A"},
-			wantSlots: []SlotInfo{
-				{
-					Slot: 6,
-					Node: "node2",
-				}, {
-					Slot: 0,
-					Node: "node1",
-				},
+			wantSlots: map[string]int{
+				"node2": 6,
+				"node1": 0,
 			},
 			wantErr: false,
 		}, {
 			name: "Key-{abcdefg}",
 			args: args{key: "Key-{abcdefg}"},
-			wantSlots: []SlotInfo{
-				{
-					Slot: 1,
-					Node: "node1",
-				}, {
-					Slot: 7,
-					Node: "node2",
-				},
+			wantSlots: map[string]int{
+				"node1": 1,
+				"node2": 7,
 			},
 			wantErr: false,
 		},

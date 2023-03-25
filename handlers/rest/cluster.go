@@ -38,7 +38,16 @@ func (crh *clusterRestHandler) Join(c *gin.Context) {
 		return
 	}
 
-	// TODO: Return leaderip incase err is not leader
+	if !crh.cp.IsLeader() {
+		c.AbortWithStatusJSON(http.StatusBadRequest,
+			gin.H{
+				"error":  "not leader",
+				"leader": crh.cp.GetLeaderAddress(),
+			},
+		)
+		return
+	}
+
 	if err := crh.cp.Join(cm.NodeID, cm.RaftAddress); err != nil {
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -58,7 +67,16 @@ func (crh *clusterRestHandler) Remove(c *gin.Context) {
 		return
 	}
 
-	// TODO: Return leaderip incase err is not leader
+	if !crh.cp.IsLeader() {
+		c.AbortWithStatusJSON(http.StatusBadRequest,
+			gin.H{
+				"error":  "not leader",
+				"leader": crh.cp.GetLeaderAddress(),
+			},
+		)
+		return
+	}
+
 	if err := crh.cp.Remove(cm.NodeID); err != nil {
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -67,4 +85,20 @@ func (crh *clusterRestHandler) Remove(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"status": "ok",
 	})
+}
+
+func (crh *clusterRestHandler) Redistribute(c *gin.Context) {
+
+	if !crh.cp.IsLeader() {
+		c.AbortWithStatusJSON(http.StatusBadRequest,
+			gin.H{
+				"error":  "not leader",
+				"leader": crh.cp.GetLeaderAddress(),
+			},
+		)
+		return
+	}
+
+	// TODO: Yet to implement
+
 }

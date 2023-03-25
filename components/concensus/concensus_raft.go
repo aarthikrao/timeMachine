@@ -7,7 +7,6 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/aarthikrao/timeMachine/components/concensus/fsm"
 	"github.com/hashicorp/raft"
 	raftboltdb "github.com/hashicorp/raft-boltdb/v2"
 	"go.uber.org/zap"
@@ -38,7 +37,7 @@ type raftConcensus struct {
 	raft *raft.Raft
 }
 
-func NewRaftConcensus(serverID string, port int, volumeDir string, log *zap.Logger, bootstrap bool) (*raftConcensus, error) {
+func NewRaftConcensus(serverID string, port int, volumeDir string, fsmStore raft.FSM, log *zap.Logger, bootstrap bool) (*raftConcensus, error) {
 	raftConf := raft.DefaultConfig()
 	raftConf.LocalID = raft.ServerID(serverID)
 	raftConf.SnapshotThreshold = 1024
@@ -70,7 +69,6 @@ func NewRaftConcensus(serverID string, port int, volumeDir string, log *zap.Logg
 		return nil, err
 	}
 
-	fsmStore := fsm.NewConfigFSM(log)
 	raftServer, err := raft.NewRaft(raftConf, fsmStore, cacheStore, store, snapshotStore, transport)
 	if err != nil {
 		return nil, err
