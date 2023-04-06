@@ -1,8 +1,8 @@
 package nodemanager
 
 import (
-	ds "github.com/aarthikrao/timeMachine/components/datastore"
 	"github.com/aarthikrao/timeMachine/components/dht"
+	js "github.com/aarthikrao/timeMachine/components/jobstore"
 	dsm "github.com/aarthikrao/timeMachine/process/datastoremanager"
 )
 
@@ -22,7 +22,7 @@ func CreateNodeManager(dsmgr *dsm.DataStoreManager, dhtMgr dht.DHT) *NodeManager
 
 // Returns the location interface of the key. If the node is present on the same node,
 // it returns the db, orelse it returns the connection to the respective server
-func (nm *NodeManager) GetLocation(key string) (ds.DataStore, error) {
+func (nm *NodeManager) GetLocation(key string) (js.JobStore, error) {
 	nodeVsSlot, err := nm.dhtMgr.GetLocation(key)
 	if err != nil {
 		return nil, err

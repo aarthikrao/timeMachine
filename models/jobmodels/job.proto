@@ -1,0 +1,23 @@
+syntax = "proto3";
+package jobmodels;
+
+option go_package = "github.com/aarthikrao/timeMachine/models/jobmodels;jobmodels";
+
+// Used to create jobs
+message JobCreationDetails {
+    string ID = 1;
+    int64 TriggerTime = 2;
+    bytes Meta = 3;
+    string Route = 4;
+    string Collection = 5;
+}
+
+// Used to fetch and delete job
+message JobFetchDetails {
+    string ID = 1;
+    string Collection = 2;
+}
+
+// Empty message because grpc doesnt allow methods without return
+message Empty {}
+

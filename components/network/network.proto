@@ -1,0 +1,18 @@
+syntax = "proto3";
+package network;
+
+import "models/jobmodels/job.proto";
+
+option go_package = "github.com/aarthikrao/timeMachine/components/network;network";
+
+service JobStore {
+    
+    // GetJob fetches the job from a time machine instance
+    rpc GetJob(jobmodels.JobFetchDetails) returns (jobmodels.JobCreationDetails) {}
+
+    // SetJob adds the job to a time machine instance
+    rpc SetJob(jobmodels.JobCreationDetails) returns (jobmodels.JobCreationDetails) {}
+
+    // DeleteJob will remove the job from time machine instance
+    rpc DeleteJob(jobmodels.JobFetchDetails) returns (jobmodels.Empty){}
+}

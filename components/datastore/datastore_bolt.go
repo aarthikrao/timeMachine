@@ -8,10 +8,12 @@ import (
 	jm "github.com/aarthikrao/timeMachine/models/jobmodels"
 	rm "github.com/aarthikrao/timeMachine/models/routemodels"
 	bolt "go.etcd.io/bbolt"
+
+	jStore "github.com/aarthikrao/timeMachine/components/jobstore"
 )
 
-// Compile time validation for Datastore interface
-var _ DataStoreConn = &boltDataStore{}
+// Compile time validation for jobstore interface
+var _ jStore.JobStoreConn = &boltDataStore{}
 
 // routeCollection will contain the routing info for a DB
 var routeCollection []byte = []byte("routeCollection")
@@ -35,7 +37,7 @@ type boltDataStore struct {
 	dbFilePath string
 }
 
-func CreateBoltDataStore(path string) (DataStoreConn, error) {
+func CreateBoltDataStore(path string) (jStore.JobStoreConn, error) {
 	db, err := bolt.Open(path, 0666, nil)
 	if err != nil {
 		return nil, err
