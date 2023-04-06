@@ -41,7 +41,8 @@ You can find the [roadmap here](/docs/Roadmap.md)
 Time machine is built on 
 * [BBoltDB](https://github.com/etcd-io/bbolt)
 * [Raft](https://raft.github.io/)
-* [Consistent hashing](https://en.wikipedia.org/wiki/Consistent_hashing)
+* [Distributed hash table](https://en.wikipedia.org/wiki/Distributed_hash_table)
+* [GRPC](https://grpc.io/)
 
 For more details checkout our [Tech stack](/docs/Refer.md#🛺-tech-stack)
 
