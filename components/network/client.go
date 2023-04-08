@@ -43,17 +43,17 @@ func (nh *networkHandler) GetJob(collection, jobID string) (*jm.Job, error) {
 	}
 
 	return &jm.Job{
-		TriggerTime: int(resp.TriggerTime),
-		ID:          resp.ID,
-		Meta:        resp.Meta,
-		Route:       resp.Route,
+		TriggerMS: int(resp.TriggerTime),
+		ID:        resp.ID,
+		Meta:      resp.Meta,
+		Route:     resp.Route,
 	}, nil
 
 }
 
 func (nh *networkHandler) SetJob(collection string, job *jm.Job) error {
 	_, err := nh.client.SetJob(context.Background(), &jm.JobCreationDetails{
-		TriggerTime: int64(job.TriggerTime),
+		TriggerTime: int64(job.TriggerMS),
 		ID:          job.ID,
 		Meta:        job.Meta,
 		Route:       job.Route,

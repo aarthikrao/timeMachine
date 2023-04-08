@@ -9,17 +9,19 @@ import (
 )
 
 type Job struct {
-	ID          string          `json:"id,omitempty" bson:"id,omitempty"`
-	TriggerTime int             `json:"trigger_time,omitempty" bson:"trigger_time,omitempty"`
-	Meta        json.RawMessage `json:"meta,omitempty" bson:"meta,omitempty"`
-	Route       string          `json:"route,omitempty" bson:"route,omitempty"`
+	ID string `json:"id,omitempty" bson:"id,omitempty"`
+
+	// Trigger time in milliseconds
+	TriggerMS int             `json:"trigger_ms,omitempty" bson:"trigger_ms,omitempty"`
+	Meta      json.RawMessage `json:"meta,omitempty" bson:"meta,omitempty"`
+	Route     string          `json:"route,omitempty" bson:"route,omitempty"`
 }
 
 func (j *Job) Valid() error {
 	if j.ID == "" {
 		return fmt.Errorf("invalid job id")
 	}
-	if j.TriggerTime < time.GetCurrentMillis() {
+	if j.TriggerMS < time.GetCurrentMillis() {
 		return fmt.Errorf("trigger_time is in the past")
 	}
 	if j.Route == "" {
@@ -31,7 +33,7 @@ func (j *Job) Valid() error {
 
 func (j *Job) GetMinuteBucketName() []byte {
 	// Get the minutes since epoch
-	jobMinute := j.TriggerTime / 1000
+	jobMinute := j.TriggerMS / 60000
 
 	return []byte(strconv.Itoa(jobMinute))
 }
@@ -46,7 +48,7 @@ func (j *Job) GetUniqueKey(collection string) []byte {
 }
 
 func (j *Job) StringifyTriggerTime() []byte {
-	return []byte(fmt.Sprintf("%d", j.TriggerTime))
+	return []byte(fmt.Sprintf("%d", j.TriggerMS))
 }
 
 // TODO: Change to msgpack later
