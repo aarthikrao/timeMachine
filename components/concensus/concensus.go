@@ -20,6 +20,9 @@ type Concensus interface {
 	// Returns true if the current node is leader
 	IsLeader() bool
 
+	// Returns the address of the leader node
+	GetLeaderAddress() string
+
 	// Apply is used to apply a command to the FSM
 	Apply(cmd []byte) error
 

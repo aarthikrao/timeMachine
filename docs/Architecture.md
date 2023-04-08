@@ -4,6 +4,11 @@ We want to build a scalable, consistent, fault tolerant scheduler that is simple
 * [CockroachDB](https://github.com/cockroachdb/cockroach) for consistency and scalability
 * [Redis](redis.io) for its simplicity
 
+## ⚙️ Design choices
+* Node discovery, Failure detection, Membership management - Raft concensus
+* Data replication, Consistency - Partitioned master slave with tunable consistency
+* Load balancing, Data partitioning - Consistent hashing with `vnode` partitioning
+
 ## 🦋 Diagram
 ![Architecture diagram](./images/vnode_distribution.png)
 
@@ -48,7 +53,11 @@ When a job is saved in timeMachine, a [hash partitioner algorithm](#hash-partiti
 To be done
 
 ### Hash partitioner algorithm
-To be done
+Time machine DB uses [xxHash](https://cyan4973.github.io/xxHash/) to hash the job_id and the slot is calculated as follows
+```
+> Slot Number = xxHash(job_id) % no of slots
+```
+The location of the node for a key is derived from the dht. You can read more about this in the [DHT component](/components/dht/dht.md)
 
 ### RPCs and message passing
 refer [MessagePassing](./MessagePassing.md)

@@ -1,89 +1,57 @@
 # Time Machine DB 🐓
-[![Discord](https://img.shields.io/badge/Discord-%235865F2.svg?style=for-the-badge&logo=discord&logoColor=white)](https://discord.gg/pDGNPj3dTM) 
+[![Slack](https://img.shields.io/badge/Slack-4A154B?style=for-the-badge&logo=slack&logoColor=white)](https://join.slack.com/t/timemachinedb/shared_invite/zt-1nnti899g-6XppaC~5kqF0QAqALBgxqw) 
 ![Status](https://img.shields.io/badge/Status-Ideation-ffb3ff?style=for-the-badge)
 
 A distributed, fault tolerant scheduler database that can potentially scale to millions of jobs. 
 
-The idea is to build it with a storage layer based on B+tree or LSM-tree implementation, consistent hashing for load balancing, and raft for consensus.
+The idea is to build it with a storage layer based on B+tree implementation, distributed hash table for load balancing, and raft for consensus.
+
+## 🧬 Documentation
+- [Purpose](./docs/Purpose.md)
+- [Architecture](./docs/Architecture.md) • [Components of a node](/components/Components.md) • [Also read](./docs/Refer.md)
+- [Developer APIs](./docs/DevAPI.md) • [Job APIs](./docs/DevAPI.md#-job-apis) • [Route APIs](./docs/DevAPI.md#-route-apis)
+- [TODO](./docs/TODO.md)
 
 ![Cluster animation](/docs/images/cluster_animation.gif)
 
 ## 🎯 Quick start
 
 ```bash
-# Start 3 nodes. Create respective data folders 
-# as data/node1/data and data/node1/raft
-./create-cluster.sh 3
+# Build 
+❯ go build
 
-# To add node2 to node1 as to form cluster
-❯ curl -X POST 'http://localhost:8001/cluster/join' \
--H 'Content-Type: application/json' \
---data-raw '{
- "node_id":"node2",
- "raft_address":"localhost:8102"
-}'
-# Do the same thing to node3.
+# Clean and create 5 data folders
+❯ ./scripts/clean-create.sh 5
 
-# To check cluster health of 3 nodes
-❯ ./check-health.sh 3
+# Spawn 5 instances
+❯ ./scripts/spawn.sh 5 true
 
-# More scripts coming soon
+# Create a cluster
+❯ ./scripts/join.sh 5
+
+# Check status
+❯ ./scripts/status.sh 5
 ```
-
-## 🧬 Documentation
-- [Purpose](./docs/Purpose.md)
-- [Architecture](./docs/Architecture.md)
-- [Developer APIs](./docs/DevAPI.md) | [Job APIs](./docs/DevAPI.md#-job-apis) | [Route APIs](./docs/DevAPI.md#-route-apis)
-- [TODO](./docs/TODO.md)
+Checkout the [detailed guide](/docs/Setup.md)
 
 ## 🎬 Roadmap
-- [x] Core project structure
-- [x] Data storage layer
-    - [x] Implement BoltDB
-    - [ ] Implement Badger
-    - [ ] Optimise to Messagepack, proto or avro
-- [ ] Bash/Make script
-    - [ ] Cluster deployment
-    - [ ] Build and run tests
-    - [ ] Add and remove nodes
-- [x] Client CRUD
-    - [x] Rest interface
-- [x] Node leader election
-    - [x] Implement Raft
-    - [x] Implement FSM
-    - [x] Add/Remove nodes
-- [ ] `vnode` leader election
-    - [ ] Failure and restart
-    - [ ] `vnode` leader and follower health check
-- [ ] Node connection manager
-    - [ ] GRPC contracts and message passing
-    - [ ] Data replication
-- [ ] Properties file
-    - [ ] Validation
-    - [ ] Using master properties file
-- [ ] Partioner Hash function
-    - [ ] Provision for clustering key
-    - [ ] Re-routing via connection manager
-- [ ] Restart, scale up and scale down handling
-    - [ ] Invoking node and `vnode` leader election
+You can find the [roadmap here](/docs/Roadmap.md)
 
 ## 🛺 Tech Stack
-* Storage layer
-    * [BoltDB](https://github.com/boltdb/bolt) and [BBoltDB](https://github.com/etcd-io/bbolt)
-    * [BadgerDB](https://github.com/dgraph-io/badger)
-    * [PebbleDB](https://github.com/cockroachdb/pebble)
-* Consensus
-    * [Hashicorp raft](https://github.com/hashicorp/raft)
-    * [Etcd raft](https://github.com/etcd-io/etcd/tree/main/raft)
-* Consistent hashing: [Hashring](https://github.com/serialx/hashring)
-* Storage format
-    * [MessagePack](https://github.com/vmihailenco/msgpack)
-    * [Avro](https://github.com/hamba/avro)
-* Message passing: [GRPC](https://github.com/grpc/grpc-go)
-* Clients
-    * REST
-    * CLI on rest
-* and more ...
+Time machine is built on 
+* [BBoltDB](https://github.com/etcd-io/bbolt)
+* [Raft](https://raft.github.io/)
+* [Distributed hash table](https://en.wikipedia.org/wiki/Distributed_hash_table)
+* [GRPC](https://grpc.io/)
+
+For more details checkout our [Tech stack](/docs/Refer.md#🛺-tech-stack)
 
 ## ⚽ Contribute
-Coming soon. Join our discord server till then
+* Choose a component to work on.
+* Research the component thoroughly.
+* Reach out to me, so that I can mark it as "Work in Progress" to prevent duplication of efforts.
+* Build, code, and test the component.
+* Submit a pull request (PR) when you are ready to have your changes reviewed.
+
+
+Refer [Contributing](./CONTRIBUTING.md) for more

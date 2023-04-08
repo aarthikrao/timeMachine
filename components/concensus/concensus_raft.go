@@ -7,7 +7,6 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/aarthikrao/timeMachine/components/concensus/fsm"
 	"github.com/hashicorp/raft"
 	raftboltdb "github.com/hashicorp/raft-boltdb/v2"
 	"go.uber.org/zap"
@@ -32,11 +31,13 @@ const (
 	raftLogCacheSize = 512
 )
 
+var _ Concensus = &raftConcensus{}
+
 type raftConcensus struct {
 	raft *raft.Raft
 }
 
-func NewRaftConcensus(serverID string, port int, volumeDir string, log *zap.Logger) (*raftConcensus, error) {
+func NewRaftConcensus(serverID string, port int, volumeDir string, fsmStore raft.FSM, log *zap.Logger, bootstrap bool) (*raftConcensus, error) {
 	raftConf := raft.DefaultConfig()
 	raftConf.LocalID = raft.ServerID(serverID)
 	raftConf.SnapshotThreshold = 1024
@@ -68,25 +69,26 @@ func NewRaftConcensus(serverID string, port int, volumeDir string, log *zap.Logg
 		return nil, err
 	}
 
-	fsmStore := fsm.NewConfigFSM(log)
 	raftServer, err := raft.NewRaft(raftConf, fsmStore, cacheStore, store, snapshotStore, transport)
 	if err != nil {
 		return nil, err
 	}
 
-	// always start single server as a leader
-	configuration := raft.Configuration{
-		Servers: []raft.Server{
-			{
-				ID:       raft.ServerID(serverID),
-				Address:  transport.LocalAddr(),
-				Suffrage: raft.Voter,
+	if bootstrap {
+		// always start single server as a leader
+		configuration := raft.Configuration{
+			Servers: []raft.Server{
+				{
+					ID:      raft.ServerID(serverID),
+					Address: transport.LocalAddr(),
+					// Suffrage: raft.Voter,
+				},
 			},
-		},
-	}
+		}
 
-	if err := raftServer.BootstrapCluster(configuration).Error(); err != nil {
-		log.Error("Bootstrap error", zap.Error(err))
+		if err := raftServer.BootstrapCluster(configuration).Error(); err != nil {
+			log.Error("Bootstrap error", zap.Error(err))
+		}
 	}
 
 	return &raftConcensus{
@@ -122,6 +124,11 @@ func (r *raftConcensus) Stats() map[string]string {
 // Returns true if the current node is leader
 func (r *raftConcensus) IsLeader() bool {
 	return r.raft.State() == raft.Leader
+}
+
+// Returns address of the leader
+func (r *raftConcensus) GetLeaderAddress() string {
+	return string(r.raft.Leader())
 }
 
 // Apply is used to apply a command to the FSM

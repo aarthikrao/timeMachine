@@ -2,23 +2,27 @@
 package client
 
 import (
-	ds "github.com/aarthikrao/timeMachine/components/datastore"
 	jm "github.com/aarthikrao/timeMachine/models/jobmodels"
 	rm "github.com/aarthikrao/timeMachine/models/routemodels"
+	"github.com/aarthikrao/timeMachine/process/nodemanager"
 )
 
 type ClientProcess struct {
-	dataStore ds.DataStore
+	nodeMgr *nodemanager.NodeManager
 }
 
-func CreateClientProcess(dataStore ds.DataStore) *ClientProcess {
+func CreateClientProcess(nodeMgr *nodemanager.NodeManager) *ClientProcess {
 	return &ClientProcess{
-		dataStore: dataStore,
+		nodeMgr: nodeMgr,
 	}
 }
 
 func (cp *ClientProcess) GetJob(collection, jobID string) (*jm.Job, error) {
-	return cp.dataStore.GetJob(collection, jobID)
+	slot, err := cp.nodeMgr.GetLocation(jobID)
+	if err != nil {
+		return nil, err
+	}
+	return slot.GetJob(collection, jobID)
 }
 
 func (cp *ClientProcess) SetJob(collection string, job *jm.Job) error {
@@ -30,7 +34,11 @@ func (cp *ClientProcess) SetJob(collection string, job *jm.Job) error {
 		return err
 	}
 
-	return cp.dataStore.SetJob(collection, job)
+	slot, err := cp.nodeMgr.GetLocation(job.ID)
+	if err != nil {
+		return err
+	}
+	return slot.SetJob(collection, job)
 }
 
 func (cp *ClientProcess) DeleteJob(collection, jobID string) error {
@@ -38,7 +46,11 @@ func (cp *ClientProcess) DeleteJob(collection, jobID string) error {
 		return ErrInvalidDetails
 	}
 
-	return cp.dataStore.DeleteJob(collection, jobID)
+	slot, err := cp.nodeMgr.GetLocation(jobID)
+	if err != nil {
+		return err
+	}
+	return slot.DeleteJob(collection, jobID)
 }
 
 // This should be used only for developement purpose
@@ -47,21 +59,23 @@ func (cp *ClientProcess) FetchJobForBucket(minute int) ([]*jm.Job, error) {
 		return nil, ErrInvalidDetails
 	}
 
-	return cp.dataStore.FetchJobForBucket(minute)
+	return nil, nil // TODO: Yet to implement
 }
 
 func (cp *ClientProcess) GetRoute(routeID string) (*rm.Route, error) {
 	if routeID == "" {
 		return nil, ErrInvalidDetails
 	}
-	return cp.dataStore.GetRoute(routeID)
+
+	return nil, nil // TODO: Yet to implement
 }
 
 func (cp *ClientProcess) SetRoute(route *rm.Route) error {
 	if err := route.Valid(); err != nil {
 		return err
 	}
-	return cp.dataStore.SetRoute(route)
+
+	return nil // TODO: Yet to implement
 
 }
 
@@ -69,5 +83,6 @@ func (cp *ClientProcess) DeleteRoute(routeID string) error {
 	if routeID == "" {
 		return ErrInvalidDetails
 	}
-	return cp.dataStore.DeleteRoute(routeID)
+
+	return nil // TODO: Yet to implement
 }

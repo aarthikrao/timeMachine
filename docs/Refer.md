@@ -1,5 +1,17 @@
 # 🔭 References
 
+## 🛺 Tech Stack
+
+* Storage layer: [BBoltDB](https://github.com/etcd-io/bbolt)
+* Consensus: [Hashicorp raft](https://github.com/hashicorp/raft)
+* Consistent hashing: [buraksezer/consistent](https://github.com/buraksezer/consistent)
+* Storage format: [MessagePack](https://github.com/vmihailenco/msgpack)
+* Message passing: [GRPC](https://github.com/grpc/grpc-go)
+* Clients
+    * REST
+    * CLI on rest
+* and more ...
+
 ## Other similar products
 * https://docs.aws.amazon.com/eventbridge/latest/userguide/eb-what-is.html
 
