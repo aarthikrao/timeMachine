@@ -4,7 +4,7 @@
 
 A distributed, fault tolerant scheduler database that can potentially scale to millions of jobs. 
 
-The idea is to build it with a storage layer based on B+tree or LSM-tree implementation, consistent hashing for load balancing, and raft for consensus.
+The idea is to build it with a storage layer based on B+tree implementation, distributed hash table for load balancing, and raft for consensus.
 
 ## 🧬 Documentation
 - [Purpose](./docs/Purpose.md)

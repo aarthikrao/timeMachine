@@ -1,15 +1,27 @@
 package nodemanager
 
 import (
+	"errors"
+
 	"github.com/aarthikrao/timeMachine/components/dht"
 	js "github.com/aarthikrao/timeMachine/components/jobstore"
+	"github.com/aarthikrao/timeMachine/process/connectionmanager"
 	dsm "github.com/aarthikrao/timeMachine/process/datastoremanager"
+)
+
+var (
+
+	// If you face this err, it means that the nodeID was not found in
+	ErrInvalidNodeIDSlotIDCombination = errors.New("invalid nodeid and slotid combination")
 )
 
 type NodeManager struct {
 	selfNodeID string
 
-	dsmgr  *dsm.DataStoreManager
+	dsmgr *dsm.DataStoreManager
+
+	connMgr *connectionmanager.ConnectionManager
+
 	dhtMgr dht.DHT
 }
 
@@ -28,14 +40,27 @@ func (nm *NodeManager) GetLocation(key string) (js.JobStore, error) {
 		return nil, err
 	}
 
-	// Fetch the node number if it exists
-	slotNumber, ok := nodeVsSlot[nm.selfNodeID]
-	if ok {
-		return nm.dsmgr.GetDataNode(slotNumber)
+	// TODO: This is just a hack. Need to get the right algorithm based on leader and follower details
+	presentInThisNode := false
+	alternativeNodeID := ""
+	for node, _ := range nodeVsSlot {
+		if node == nm.selfNodeID {
+			presentInThisNode = true
+		} else {
+			alternativeNodeID = node
+		}
 	}
 
-	return nil, nil
-	// TODO: Return the DataStore interface with GRPC connection
-	// that can be used to fetch data from another node
+	if presentInThisNode {
+		slotNumber, ok := nodeVsSlot[nm.selfNodeID]
+		if ok {
+			return nm.dsmgr.GetDataNode(slotNumber)
+		}
+	}
 
+	if alternativeNodeID != "" {
+		return nm.connMgr.GetConnection(nm.selfNodeID)
+	}
+
+	return nil, ErrInvalidNodeIDSlotIDCombination
 }

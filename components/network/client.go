@@ -11,6 +11,7 @@ import (
 
 type networkHandler struct {
 	client JobStoreClient
+	conn   *grpc.ClientConn
 }
 
 // Compile time interface validation
@@ -27,6 +28,7 @@ func CreateConnection(addr string) (*networkHandler, error) {
 
 	return &networkHandler{
 		client: NewJobStoreClient(conn),
+		conn:   conn,
 	}, nil
 }
 
@@ -68,4 +70,8 @@ func (nh *networkHandler) DeleteJob(collection, jobID string) error {
 	})
 
 	return err
+}
+
+func (nh *networkHandler) Close() error {
+	return nh.conn.Close() // TODO: Move all the connections to conn manager
 }
