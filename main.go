@@ -10,8 +10,8 @@ import (
 	"github.com/aarthikrao/timeMachine/components/client"
 	"github.com/aarthikrao/timeMachine/components/concensus"
 	"github.com/aarthikrao/timeMachine/components/concensus/fsm"
-	ds "github.com/aarthikrao/timeMachine/components/datastore"
 	"github.com/aarthikrao/timeMachine/components/dht"
+	"github.com/aarthikrao/timeMachine/process/connectionmanager"
 	dsm "github.com/aarthikrao/timeMachine/process/datastoremanager"
 	"github.com/aarthikrao/timeMachine/process/nodemanager"
 	"go.uber.org/zap"
@@ -19,7 +19,7 @@ import (
 
 // Input flags
 var (
-	serverID  = flag.String("serverID", "", "Raft serverID of this node. Must be unique across cluster")
+	nodeID    = flag.String("nodeID", "", "Raft nodeID of this node. Must be unique across cluster")
 	dataDir   = flag.String("datadir", "data", "Provide the data directory without trailing '/'")
 	raftPort  = flag.Int("raftPort", 8101, "raft listening port")
 	httpPort  = flag.Int("httpPort", 8001, "http listening port")
@@ -28,13 +28,13 @@ var (
 
 func main() {
 	flag.Parse()
-	if *serverID == "" || *dataDir == "" || *raftPort == 0 {
+	if *nodeID == "" || *dataDir == "" || *raftPort == 0 {
 		flag.PrintDefaults()
-		panic("Invalid flags. try: ./timeMachine --serverID=node1 --raftPort=8101 --httpPort=8001 --bootstrap=true")
+		panic("Invalid flags. try: ./timeMachine --nodeID=node1 --raftPort=8101 --httpPort=8001 --bootstrap=true")
 	}
 
 	// Prepare data and raft folder
-	baseDir := *dataDir + "/" + *serverID
+	baseDir := *dataDir + "/" + *nodeID
 	boltDataDir := baseDir + "/data"
 	raftDataDir := baseDir + "/raft"
 
@@ -45,7 +45,7 @@ func main() {
 
 	// Initialise raft
 	raft, err := concensus.NewRaftConcensus(
-		*serverID,
+		*nodeID,
 		*raftPort,
 		raftDataDir,
 		fsmStore,
@@ -56,21 +56,35 @@ func main() {
 		log.Fatal("Unable to start raft", zap.Error(err))
 	}
 
-	// appDht will store the distributed hash table of this node
-	var appDht dht.DHT = dht.Create()
-	var dsmgr *dsm.DataStoreManager = dsm.CreateDataStore(boltDataDir, log)
+	var (
+		// appDht will store the distributed hash table of this node
+		appDht  dht.DHT                              = dht.Create()
+		dsmgr   *dsm.DataStoreManager                = dsm.CreateDataStore(boltDataDir, log)
+		connMgr *connectionmanager.ConnectionManager = connectionmanager.CreateConnectionManager(log)
+	)
 
-	// Get data from fsm
-	nodeVsSlot := fsmStore.GetNodeVsStruct()
 	if !*bootstrap {
+		nodeVsSlot := fsmStore.GetNodeVsStruct()
 		if len(nodeVsSlot) <= 0 {
 			panic("There are no slots for this node. Did you mean to start this node in bootstrap mode")
 		}
 
-		appDht.Load(nodeVsSlot)
-		slots := nodeVsSlot[*serverID]
+		// Load the hash table information
+		if err := appDht.Load(nodeVsSlot); err != nil {
+			panic(err)
+		}
+
+		slots := nodeVsSlot[*nodeID]
 		if err := dsmgr.InitialiseDataStores(slots); err != nil {
 			panic(err)
+		}
+
+		// Initialse the connection manager
+		addrMap := fsmStore.GetNodeAddressMap()
+
+		// Create connections to other nodes
+		for nodeID, address := range addrMap {
+			connMgr.AddNewConnection(nodeID, address)
 		}
 
 	} else {
@@ -82,14 +96,13 @@ func main() {
 		log.Warn("NodeVsSlot and datastores not yet initialised. Consider rebalancing the cluster once started")
 	}
 
-	// Initialise datastore
-	datastore, err := ds.CreateBoltDataStore(boltDataDir + "/" + "test")
-	if err != nil {
-		panic(err)
-	}
-	defer datastore.Close()
-
-	nodeMgr := nodemanager.CreateNodeManager(dsmgr, appDht)
+	// Initialise node manager
+	nodeMgr := nodemanager.CreateNodeManager(
+		*nodeID,
+		dsmgr,
+		connMgr,
+		appDht,
+	)
 
 	// Initialise process
 	clientProcess := client.CreateClientProcess(nodeMgr)

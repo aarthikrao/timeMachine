@@ -6,4 +6,7 @@ type nodeConfig struct {
 	LastContactTime int `json:"last_contact_time,omitempty" bson:"last_contact_time,omitempty"`
 
 	slotVsNode map[string][]int
+
+	// NodeID vs address
+	nodeAddress map[string]string
 }

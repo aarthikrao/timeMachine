@@ -130,3 +130,10 @@ func (c *ConfigFSM) GetNodeVsStruct() map[string][]int {
 
 	return c.nc.slotVsNode
 }
+
+func (c *ConfigFSM) GetNodeAddressMap() map[string]string {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+
+	return c.nc.nodeAddress // TODO: Revisit for set method
+}

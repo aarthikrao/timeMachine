@@ -13,6 +13,9 @@ var (
 
 	// If you face this err, it means that the nodeID was not found in
 	ErrInvalidNodeIDSlotIDCombination = errors.New("invalid nodeid and slotid combination")
+
+	// node has not yet been initalised
+	ErrNotYetInitalised = errors.New("not yet initialised")
 )
 
 type NodeManager struct {
@@ -25,16 +28,27 @@ type NodeManager struct {
 	dhtMgr dht.DHT
 }
 
-func CreateNodeManager(dsmgr *dsm.DataStoreManager, dhtMgr dht.DHT) *NodeManager {
+func CreateNodeManager(
+	selfNodeID string,
+	dsmgr *dsm.DataStoreManager,
+	connMgr *connectionmanager.ConnectionManager,
+	dhtMgr dht.DHT,
+) *NodeManager {
 	return &NodeManager{
-		dsmgr:  dsmgr,
-		dhtMgr: dhtMgr,
+		selfNodeID: selfNodeID,
+		dsmgr:      dsmgr,
+		dhtMgr:     dhtMgr,
+		connMgr:    connMgr,
 	}
 }
 
 // Returns the location interface of the key. If the node is present on the same node,
 // it returns the db, orelse it returns the connection to the respective server
 func (nm *NodeManager) GetLocation(key string) (js.JobStore, error) {
+	if nm.connMgr == nil {
+		return nil, ErrNotYetInitalised
+	}
+
 	nodeVsSlot, err := nm.dhtMgr.GetLocation(key)
 	if err != nil {
 		return nil, err
@@ -59,7 +73,7 @@ func (nm *NodeManager) GetLocation(key string) (js.JobStore, error) {
 	}
 
 	if alternativeNodeID != "" {
-		return nm.connMgr.GetConnection(nm.selfNodeID)
+		return nm.connMgr.GetJobStore(nm.selfNodeID)
 	}
 
 	return nil, ErrInvalidNodeIDSlotIDCombination
