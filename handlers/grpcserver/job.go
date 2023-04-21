@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/aarthikrao/timeMachine/components/client"
+	"github.com/aarthikrao/timeMachine/components/jobstore"
 	"github.com/aarthikrao/timeMachine/components/network"
 	"github.com/aarthikrao/timeMachine/models/jobmodels"
 	"go.uber.org/zap"
@@ -13,7 +14,8 @@ import (
 type jobServer struct {
 	network.JobStoreServer
 
-	jobClient *client.ClientProcess
+	// A job client that implements the JobStore interface
+	jobClient jobstore.JobStore
 	log       *zap.Logger
 }
 

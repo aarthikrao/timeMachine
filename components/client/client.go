@@ -2,6 +2,7 @@
 package client
 
 import (
+	"github.com/aarthikrao/timeMachine/components/jobstore"
 	jm "github.com/aarthikrao/timeMachine/models/jobmodels"
 	rm "github.com/aarthikrao/timeMachine/models/routemodels"
 	"github.com/aarthikrao/timeMachine/process/nodemanager"
@@ -10,6 +11,9 @@ import (
 type ClientProcess struct {
 	nodeMgr *nodemanager.NodeManager
 }
+
+// compile time validation
+var _ jobstore.JobStore = &ClientProcess{}
 
 func CreateClientProcess(nodeMgr *nodemanager.NodeManager) *ClientProcess {
 	return &ClientProcess{
