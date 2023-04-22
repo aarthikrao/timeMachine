@@ -19,7 +19,7 @@ var (
 )
 
 type NodeManager struct {
-	selfNodeID string
+	selfNodeID dht.NodeID
 
 	dsmgr *dsm.DataStoreManager
 
@@ -35,7 +35,7 @@ func CreateNodeManager(
 	dhtMgr dht.DHT,
 ) *NodeManager {
 	return &NodeManager{
-		selfNodeID: selfNodeID,
+		selfNodeID: dht.NodeID(selfNodeID),
 		dsmgr:      dsmgr,
 		dhtMgr:     dhtMgr,
 		connMgr:    connMgr,
@@ -56,7 +56,7 @@ func (nm *NodeManager) GetLocation(key string) (js.JobStore, error) {
 
 	// TODO: This is just a hack. Need to get the right algorithm based on leader and follower details
 	presentInThisNode := false
-	alternativeNodeID := ""
+	alternativeNodeID := dht.NodeID("")
 	for node, _ := range nodeVsSlot {
 		if node == nm.selfNodeID {
 			presentInThisNode = true

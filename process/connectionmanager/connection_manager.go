@@ -3,6 +3,7 @@ package connectionmanager
 import (
 	"sync"
 
+	"github.com/aarthikrao/timeMachine/components/dht"
 	js "github.com/aarthikrao/timeMachine/components/jobstore"
 	"github.com/aarthikrao/timeMachine/components/network"
 	"github.com/pkg/errors"
@@ -30,7 +31,7 @@ type timeMachineConnection struct {
 type ConnectionManager struct {
 
 	// nodeID vs connection object
-	tmcMap map[string]*timeMachineConnection
+	tmcMap map[dht.NodeID]*timeMachineConnection
 	mu     sync.RWMutex
 
 	log *zap.Logger
@@ -42,12 +43,12 @@ type ConnectionManager struct {
 func CreateConnectionManager(log *zap.Logger) *ConnectionManager {
 	return &ConnectionManager{
 		log:    log,
-		tmcMap: make(map[string]*timeMachineConnection),
+		tmcMap: make(map[dht.NodeID]*timeMachineConnection),
 	}
 }
 
 // connects to the provided nodeID.
-func (cm *ConnectionManager) connect(nodeID, addr string) error {
+func (cm *ConnectionManager) connect(nodeID dht.NodeID, addr string) error {
 	conn, err := grpc.Dial(addr,
 		grpc.WithInsecure(),
 		grpc.WithBlock())
@@ -70,11 +71,11 @@ func (cm *ConnectionManager) AddNewConnection(nodeID string, address string) err
 	cm.mu.Lock()
 	defer cm.mu.Unlock()
 
-	return cm.connect(nodeID, address)
+	return cm.connect(dht.NodeID(nodeID), address)
 }
 
 // GetJobStore returns an existing job store client
-func (cm *ConnectionManager) GetJobStore(nodeID string) (js.JobStore, error) {
+func (cm *ConnectionManager) GetJobStore(nodeID dht.NodeID) (js.JobStore, error) {
 	cm.mu.RLock()
 	defer cm.mu.RUnlock()
 
@@ -92,7 +93,7 @@ func (cm *ConnectionManager) Close() {
 
 	for nodeID, tmc := range cm.tmcMap {
 		cm.log.Info("Closing connection with node",
-			zap.String("nodeID", nodeID),
+			zap.String("nodeID", string(nodeID)),
 			zap.String("addr", tmc.address),
 		)
 

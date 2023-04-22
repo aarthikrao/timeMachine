@@ -74,7 +74,7 @@ func main() {
 			panic(err)
 		}
 
-		slots := nodeVsSlot[*nodeID]
+		slots := nodeVsSlot[dht.NodeID(*nodeID)]
 		if err := dsmgr.InitialiseDataStores(slots); err != nil {
 			panic(err)
 		}
