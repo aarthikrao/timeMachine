@@ -35,7 +35,7 @@ func (j *Job) GetMinuteBucketName() []byte {
 	// Get the minutes since epoch
 	jobMinute := j.TriggerMS / 60000
 
-	return []byte(strconv.Itoa(jobMinute))
+	return []byte(strconv.FormatInt(jobMinute, 10))
 }
 
 // returns collection + "_" + job.ID
