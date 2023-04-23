@@ -17,19 +17,11 @@ type networkHandler struct {
 // Compile time interface validation
 var _ jobstore.JobStore = &networkHandler{}
 
-func CreateConnection(addr string) (*networkHandler, error) {
-	conn, err := grpc.Dial(addr,
-		grpc.WithInsecure(),
-		grpc.WithBlock())
-
-	if err != nil {
-		return nil, err
-	}
-
+func CreateJobStoreClient(conn *grpc.ClientConn) *networkHandler {
 	return &networkHandler{
 		client: NewJobStoreClient(conn),
 		conn:   conn,
-	}, nil
+	}
 }
 
 func (nh *networkHandler) GetJob(collection, jobID string) (*jm.Job, error) {
@@ -70,8 +62,4 @@ func (nh *networkHandler) DeleteJob(collection, jobID string) error {
 	})
 
 	return err
-}
-
-func (nh *networkHandler) Close() error {
-	return nh.conn.Close() // TODO: Move all the connections to conn manager
 }

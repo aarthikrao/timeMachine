@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"sync"
 
+	"github.com/aarthikrao/timeMachine/components/dht"
 	"github.com/hashicorp/raft"
 	"github.com/pkg/errors"
 	"go.uber.org/zap"
@@ -16,7 +17,7 @@ type ConfigFSM struct {
 	nc *nodeConfig
 
 	// slotVsNodeHandler handles the changes in slot vs node map changes
-	slotVsNodeHandler func(map[string][]int) error
+	slotVsNodeHandler func(map[dht.NodeID][]dht.SlotID) error
 
 	mu  sync.RWMutex
 	log *zap.Logger
@@ -104,7 +105,7 @@ func (c *ConfigFSM) handleChange(data []byte) error {
 	switch cmd.Operation {
 	case SlotVsNodeChange:
 		// Decode the data change for slot vs node change
-		var m map[string][]int
+		var m map[dht.NodeID][]dht.SlotID
 		err := json.Unmarshal(cmd.Data, &m)
 		if err != nil {
 			return errors.Wrap(err, "slotvsNode Handler ")
@@ -124,9 +125,16 @@ func (c *ConfigFSM) GetLastUpdatedTime() int {
 	return c.nc.LastContactTime
 }
 
-func (c *ConfigFSM) GetNodeVsStruct() map[string][]int {
+func (c *ConfigFSM) GetNodeVsStruct() map[dht.NodeID][]dht.SlotID {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
 
 	return c.nc.slotVsNode
+}
+
+func (c *ConfigFSM) GetNodeAddressMap() map[string]string {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+
+	return c.nc.nodeAddress // TODO: Revisit for set method
 }

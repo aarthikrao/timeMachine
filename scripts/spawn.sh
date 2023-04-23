@@ -12,12 +12,12 @@ bootstrap=$2
 node1_ip=127.0.0.1
 node1_port=8000
 echo "Starting node 1 at $node1_ip:$node1_port"
-./timeMachine --serverID=node1 --raftPort=8101 --httpPort=8001 --bootstrap=$bootstrap &
+./timeMachine --nodeID=node1 --raftPort=8101 --httpPort=8001 --bootstrap=$bootstrap &
 
 # Start the remaining nodes
 for i in $(seq 2 $num_nodes); do
   echo "Starting node$i with Raft at $node_ip:810$i and HTTP at 800$i"
-  ./timeMachine --serverID=node$i --raftPort=810$i --httpPort=800$i --bootstrap=$bootstrap &
+  ./timeMachine --nodeID=node$i --raftPort=810$i --httpPort=800$i --bootstrap=$bootstrap &
 done
 
 echo "Local cluster started with $num_nodes nodes."

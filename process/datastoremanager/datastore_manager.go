@@ -6,6 +6,7 @@ import (
 	"sync"
 
 	ds "github.com/aarthikrao/timeMachine/components/datastore"
+	"github.com/aarthikrao/timeMachine/components/dht"
 	js "github.com/aarthikrao/timeMachine/components/jobstore"
 	"go.uber.org/zap"
 )
@@ -18,7 +19,7 @@ type DataStoreManager struct {
 	// This will implement JobStore interface(s)
 
 	// This list will contain the nodes owned by this instance of the server
-	slotsOwned map[int]js.JobStoreConn
+	slotsOwned map[dht.SlotID]js.JobStoreConn
 
 	// path to the parent directory containing all the data
 	parentDirectory string
@@ -37,22 +38,22 @@ func CreateDataStore(parentDirectory string, log *zap.Logger) *DataStoreManager 
 	return dsm
 }
 
-func (dsm *DataStoreManager) InitialiseDataStores(nodes []int) error {
-	for _, i := range nodes {
-		path := fmt.Sprintf("%s/%d.db", dsm.parentDirectory, i)
+func (dsm *DataStoreManager) InitialiseDataStores(slots []dht.SlotID) error {
+	for _, slot := range slots {
+		path := fmt.Sprintf("%s/%d.db", dsm.parentDirectory, slot)
 		datastore, err := ds.CreateBoltDataStore(path)
 		if err != nil {
 			return err
 		}
 
-		dsm.slotsOwned[i] = datastore
-		dsm.log.Info("initialised node", zap.Int("nodeID", i), zap.String("path", path))
+		dsm.slotsOwned[slot] = datastore
+		dsm.log.Info("initialised node", zap.Int("slot", int(slot)), zap.String("path", path))
 	}
 
 	return nil
 }
 
-func (dsm *DataStoreManager) GetDataNode(nodeID int) (js.JobStore, error) {
+func (dsm *DataStoreManager) GetDataNode(slotID dht.SlotID) (js.JobStore, error) {
 	dsm.mu.RLock()
 	defer dsm.mu.RUnlock()
 
@@ -60,7 +61,7 @@ func (dsm *DataStoreManager) GetDataNode(nodeID int) (js.JobStore, error) {
 		return nil, ErrDataStoreNotInitialised
 	}
 
-	return dsm.slotsOwned[nodeID], nil
+	return dsm.slotsOwned[slotID], nil
 }
 
 func (dsm *DataStoreManager) Close() {

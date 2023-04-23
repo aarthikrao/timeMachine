@@ -25,18 +25,18 @@ type DHT interface {
 
 	// Loads data from a already existing configuration.
 	// This must be taken called after confirmation from the master
-	Load(nodeVsSlots map[string][]int) error
+	Load(nodeVsSlots map[NodeID][]SlotID) error
 
 	// Snapshot returns the node vs slot ids map.
-	Snapshot() (slotVsNode map[int]string)
+	Snapshot() (slotVsNode map[SlotID]NodeID)
 
 	// Returns the location of the primary and relica slots and corresponding nodes
 	// map[SlotNumber]NodeID
-	GetLocation(key string) (slots map[string]int, err error)
+	GetLocation(key string) (slots map[NodeID]SlotID, err error)
 
 	// UpdateSlot reassigns the slot to a particular node.
 	// Only called after confirmation from master
-	UpdateSlot(slot int, fromNode, toNode string) (err error)
+	UpdateSlot(slot SlotID, fromNode, toNode NodeID) (err error)
 
 	// Returns a possible slot to migrate.
 	Propose() (slot int, fromNode, toNode string, err error)

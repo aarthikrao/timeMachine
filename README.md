@@ -1,6 +1,6 @@
 # Time Machine DB 🐓
 [![Slack](https://img.shields.io/badge/Slack-4A154B?style=for-the-badge&logo=slack&logoColor=white)](https://join.slack.com/t/timemachinedb/shared_invite/zt-1nnti899g-6XppaC~5kqF0QAqALBgxqw) 
-![Status](https://img.shields.io/badge/Status-Ideation-ffb3ff?style=for-the-badge)
+![Status](https://img.shields.io/badge/Status-Development-3ac952?style=for-the-badge)
 
 A distributed, fault tolerant scheduler database that can potentially scale to millions of jobs. 
 

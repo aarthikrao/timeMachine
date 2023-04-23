@@ -1,43 +1,102 @@
 package connectionmanager
 
 import (
-	"errors"
+	"sync"
 
+	"github.com/aarthikrao/timeMachine/components/dht"
 	js "github.com/aarthikrao/timeMachine/components/jobstore"
 	"github.com/aarthikrao/timeMachine/components/network"
+	"github.com/pkg/errors"
+	"go.uber.org/zap"
+	"google.golang.org/grpc"
 )
 
 var (
-	ErrNodeAddressNotPresent = errors.New("node address not present")
+	ErrNodeNotPresent = errors.New("node not present")
 )
 
+// This will aggregate all the connections and clients for
+// the GRPC connection with other time machine node.
+type timeMachineConnection struct {
+	// The uri of the time machine instance
+	address string
+
+	// The main grpc connection that is created with another instance of time machine node
+	grpcConn *grpc.ClientConn
+
+	// All the clients
+	jobStore js.JobStore
+}
+
 type ConnectionManager struct {
-	// This map will contain the collections to other nodes via the job store API
-	connMgr map[string]js.JobStoreConn
 
-	// contains the address of all the other time machine nodes.
-	// This map has to be updated when a new node is added
-	address map[string]string
+	// nodeID vs connection object
+	tmcMap map[dht.NodeID]*timeMachineConnection
+	mu     sync.RWMutex
+
+	log *zap.Logger
 }
 
-func CreateConnectionManager() *ConnectionManager {
-	// TODO: Initialise with seed node details
-	return &ConnectionManager{}
+// CreateConnectionManager returns the connection manager
+// It does not initialise the connections. This will have to be done
+// by using the AddNewConnection
+func CreateConnectionManager(log *zap.Logger) *ConnectionManager {
+	return &ConnectionManager{
+		log:    log,
+		tmcMap: make(map[dht.NodeID]*timeMachineConnection),
+	}
 }
 
-// GetConnection returns an existing connection object.
-// If the connection does not exist, it will create a new
-// connection and return it.
-func (cm *ConnectionManager) GetConnection(nodeID string) (js.JobStoreConn, error) {
-	if conn, ok := cm.connMgr[nodeID]; ok {
-		return conn, nil
+// connects to the provided nodeID.
+func (cm *ConnectionManager) connect(nodeID dht.NodeID, addr string) error {
+	conn, err := grpc.Dial(addr,
+		grpc.WithInsecure(),
+		grpc.WithBlock())
+
+	if err != nil {
+		return err
 	}
 
-	// Connection is nnot present. Create a new connection
-	nodeAddr, ok := cm.address[nodeID]
-	if !ok {
-		return nil, ErrNodeAddressNotPresent
+	cm.tmcMap[nodeID] = &timeMachineConnection{
+		address:  addr,
+		grpcConn: conn,
+		jobStore: network.CreateJobStoreClient(conn),
 	}
 
-	return network.CreateConnection(nodeAddr)
+	return nil
+}
+
+// Adds new connection to the connection manager
+func (cm *ConnectionManager) AddNewConnection(nodeID string, address string) error {
+	cm.mu.Lock()
+	defer cm.mu.Unlock()
+
+	return cm.connect(dht.NodeID(nodeID), address)
+}
+
+// GetJobStore returns an existing job store client
+func (cm *ConnectionManager) GetJobStore(nodeID dht.NodeID) (js.JobStore, error) {
+	cm.mu.RLock()
+	defer cm.mu.RUnlock()
+
+	if tmc, ok := cm.tmcMap[nodeID]; ok {
+		return tmc.jobStore, nil
+	}
+
+	return nil, ErrNodeNotPresent
+}
+
+// Closes all the connections maintained by the connection manager
+func (cm *ConnectionManager) Close() {
+	cm.mu.Lock()
+	defer cm.mu.Unlock()
+
+	for nodeID, tmc := range cm.tmcMap {
+		cm.log.Info("Closing connection with node",
+			zap.String("nodeID", string(nodeID)),
+			zap.String("addr", tmc.address),
+		)
+
+		tmc.grpcConn.Close()
+	}
 }
