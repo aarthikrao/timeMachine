@@ -11,3 +11,7 @@ func GetCurrentMillis() int {
 func GetCurrentMinutes() int {
 	return GetCurrentMillis() / 60000
 }
+
+func GetEpochMinutes(timestampInMS int64) int {
+	return int(timestampInMS) / 60000
+}
