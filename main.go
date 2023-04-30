@@ -69,10 +69,10 @@ func main() {
 			panic("There are no slots for this node. Did you mean to start this node in bootstrap mode")
 		}
 
-		// Load the hash table information
-		if err := appDht.Load(nodeVsSlot); err != nil {
-			panic(err)
-		}
+		// Load the hash table information // TODO: Initialise properly
+		// if err := appDht.Load(nodeVsSlot); err != nil {
+		// 	panic(err)
+		// }
 
 		slots := nodeVsSlot[dht.NodeID(*nodeID)]
 		if err := dsmgr.InitialiseDataStores(slots); err != nil {
