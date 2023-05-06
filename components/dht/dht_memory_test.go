@@ -16,42 +16,50 @@ func init() {
 }
 
 func Test_dht_GetLocation(t *testing.T) {
-	type args struct {
-		key string
-	}
 	tests := []struct {
-		name      string
-		args      args
-		wantSlots map[NodeID]SlotID
-		wantErr   bool
+		name         string
+		key          string
+		wantLeader   *SlotAndNode
+		wantFollower *SlotAndNode
+		wantErr      bool
 	}{
 		{
-			name: "Key-A",
-			args: args{key: "Key-A"},
-			wantSlots: map[NodeID]SlotID{
-				"node2": 6,
-				"node1": 0,
+			name: "node1",
+			key:  "Key-A",
+			wantLeader: &SlotAndNode{
+				SlotID: 0,
+				NodeID: "node1",
 			},
-			wantErr: false,
-		}, {
-			name: "Key-{abcdefg}",
-			args: args{key: "Key-{abcdefg}"},
-			wantSlots: map[NodeID]SlotID{
-				"node1": 1,
-				"node2": 7,
+			wantFollower: &SlotAndNode{
+				SlotID: 6,
+				NodeID: "node2",
 			},
-			wantErr: false,
+		},
+		{
+			name: "node-{havskf8hgfh23##$%}",
+			key:  "node-{havskf8hgfh23##$%}",
+			wantLeader: &SlotAndNode{
+				SlotID: 5,
+				NodeID: "node2",
+			},
+			wantFollower: &SlotAndNode{
+				SlotID: 11,
+				NodeID: "node3",
+			},
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			gotSlots, err := d.GetLocation(tt.args.key)
+			gotLeader, gotFollower, err := d.GetLocation(tt.key)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("dht.GetLocation() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if !reflect.DeepEqual(gotSlots, tt.wantSlots) {
-				t.Errorf("dht.GetLocation() = %v, want %v", gotSlots, tt.wantSlots)
+			if !reflect.DeepEqual(gotLeader, tt.wantLeader) {
+				t.Errorf("dht.GetLocation() gotLeader = %v, want %v", gotLeader, tt.wantLeader)
+			}
+			if !reflect.DeepEqual(gotFollower, tt.wantFollower) {
+				t.Errorf("dht.GetLocation() gotFollower = %v, want %v", gotFollower, tt.wantFollower)
 			}
 		})
 	}

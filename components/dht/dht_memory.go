@@ -22,6 +22,11 @@ type SlotInfo struct {
 	SlotState SlotState
 }
 
+type SlotAndNode struct {
+	SlotID SlotID
+	NodeID NodeID
+}
+
 type dht struct {
 
 	// maintains the location of all slots slotid vs nodeid
@@ -117,32 +122,40 @@ func (d *dht) Snapshot() (data []byte, err error) {
 	return json.Marshal(&d.slotVsNodes)
 }
 
-// Returns the location of the primary and relica slots and corresponding nodes
-func (d *dht) GetLocation(key string) (slots map[NodeID]SlotID, err error) {
+// Returns the location of the leader and follower slots and their corresponding nodes
+func (d *dht) GetLocation(key string) (leader *SlotAndNode, follower *SlotAndNode, err error) {
 	d.mu.RLock()
 	defer d.mu.RUnlock()
 
 	if len(d.slotVsNodes) == 0 {
-		return nil, ErrNotInitialised
+		return nil, nil, ErrNotInitialised
 	}
 
-	slotCount := len(d.slotVsNodes)
-
-	slot1 := SlotID(d.hash(key) % slotCount)
+	slot1 := SlotID(d.hashSlot(key))
 	node1 := d.slotVsNodes[slot1]
+	sn1 := &SlotAndNode{
+		SlotID: slot1,
+		NodeID: node1.NodeID,
+	}
 
-	// Finding the diagonally opposite replica
 	slot2 := d.replicaSlot(slot1)
 	node2 := d.slotVsNodes[slot2]
+	sn2 := &SlotAndNode{
+		SlotID: slot2,
+		NodeID: node2.NodeID,
+	}
 
-	return map[NodeID]SlotID{
-		node1.NodeID: slot1,
-		node2.NodeID: slot2,
-	}, nil
+	if node1.SlotState == Leader {
+		return sn1, sn2, nil // sn1 is the leader
+	} else {
+		return sn2, sn1, nil // sn2 is the leader
+	}
 }
 
-func (d *dht) hash(key string) int {
-	return int(xxhash.Sum64([]byte(key)))
+func (d *dht) hashSlot(key string) int {
+	slotCount := uint64(len(d.slotVsNodes))
+	hashValue := xxhash.Sum64([]byte(key))
+	return int(hashValue % slotCount)
 }
 
 func (d *dht) replicaSlot(location1 SlotID) SlotID {

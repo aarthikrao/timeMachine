@@ -23,9 +23,8 @@ type DHT interface {
 	// Should be called only from bootstrap mode or while creating a new cluster
 	Initialise(slotCount int, nodes []string) error
 
-	// Returns the location of the primary and relica slots and corresponding nodes
-	// map[SlotNumber]NodeID
-	GetLocation(key string) (slots map[NodeID]SlotID, err error)
+	// Returns the location of the leader and follower slot and corresponding node
+	GetLocation(key string) (leader *SlotAndNode, follower *SlotAndNode, err error)
 
 	// Load Loads data from a already existing configuration.
 	// This must be taken called after confirmation from the master

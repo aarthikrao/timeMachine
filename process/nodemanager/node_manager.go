@@ -10,10 +10,6 @@ import (
 )
 
 var (
-
-	// If you face this err, it means that the nodeID was not found in
-	ErrInvalidNodeIDSlotIDCombination = errors.New("invalid nodeid and slotid combination")
-
 	// node has not yet been initalised
 	ErrNotYetInitalised = errors.New("not yet initialised")
 )
@@ -44,37 +40,22 @@ func CreateNodeManager(
 
 // Returns the location interface of the key. If the node is present on the same node,
 // it returns the db, orelse it returns the connection to the respective server
-func (nm *NodeManager) GetLocation(key string) (js.JobStore, error) {
+func (nm *NodeManager) GetJobStoreInterface(key string) (js.JobStore, error) {
 	if nm.connMgr == nil {
 		return nil, ErrNotYetInitalised
 	}
 
-	nodeVsSlot, err := nm.dhtMgr.GetLocation(key)
+	// We process all requests via leader node.
+	leader, _, err := nm.dhtMgr.GetLocation(key)
 	if err != nil {
 		return nil, err
 	}
 
-	// TODO: This is just a hack. Need to get the right algorithm based on leader and follower details
-	presentInThisNode := false
-	alternativeNodeID := dht.NodeID("")
-	for node, _ := range nodeVsSlot {
-		if node == nm.selfNodeID {
-			presentInThisNode = true
-		} else {
-			alternativeNodeID = node
-		}
+	if leader.NodeID == nm.selfNodeID {
+		// Give the db object
+		return nm.dsmgr.GetDataNode(leader.SlotID)
+	} else {
+		// Give the connection to the node with leader
+		return nm.connMgr.GetJobStore(leader.NodeID)
 	}
-
-	if presentInThisNode {
-		slotNumber, ok := nodeVsSlot[nm.selfNodeID]
-		if ok {
-			return nm.dsmgr.GetDataNode(slotNumber)
-		}
-	}
-
-	if alternativeNodeID != "" {
-		return nm.connMgr.GetJobStore(nm.selfNodeID)
-	}
-
-	return nil, ErrInvalidNodeIDSlotIDCombination
 }
