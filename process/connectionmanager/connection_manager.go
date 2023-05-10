@@ -71,6 +71,7 @@ func (cm *ConnectionManager) AddNewConnection(nodeID string, address string) err
 	cm.mu.Lock()
 	defer cm.mu.Unlock()
 
+	// TODO: Add retry mechanism
 	return cm.connect(dht.NodeID(nodeID), address)
 }
 

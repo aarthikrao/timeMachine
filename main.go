@@ -69,12 +69,8 @@ func main() {
 			panic("There are no slots for this node. Did you mean to start this node in bootstrap mode")
 		}
 
-		// Load the hash table information // TODO: Initialise properly
-		// if err := appDht.Load(nodeVsSlot); err != nil {
-		// 	panic(err)
-		// }
-
-		slots := nodeVsSlot[dht.NodeID(*nodeID)]
+		thisNodeID := dht.NodeID(*nodeID)
+		slots := nodeVsSlot[thisNodeID]
 		if err := dsmgr.InitialiseDataStores(slots); err != nil {
 			panic(err)
 		}
@@ -84,15 +80,16 @@ func main() {
 
 		// Create connections to other nodes
 		for nodeID, address := range addrMap {
-			connMgr.AddNewConnection(nodeID, address)
+			connMgr.AddNewConnection(nodeID, address) // TODO: The nodes may not be available at the start time. We have to retry.
 		}
 
 	} else {
 		// This means the node has started in bootstrap mode.
-		// We will need to join the raft group first, and then ask the master to rebalance
-		// The master will then re distribute the slots in a way that causes very minumum
-		// data transafer accross the nodes
-		// We then update the dht so that the traffic is sent to the right data node
+		// If the cluster is being started for the first time, we will have to
+		// 	1. Form a raft group and elect a leader.
+		//  2. Ask the leader to create the inital node vs slot map with leader and follower details.
+		// 		this can be done by calling `Initialise(slotCountperNode int, nodes []string)``
+		// 	3. Communicate with all the nodes in the raft group and apply the DHT in all the nodes.
 		log.Warn("NodeVsSlot and datastores not yet initialised. Consider rebalancing the cluster once started")
 	}
 

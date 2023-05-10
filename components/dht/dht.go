@@ -21,7 +21,7 @@ type DHT interface {
 
 	// Creates a new distributed hash table from the inputs.
 	// Should be called only from bootstrap mode or while creating a new cluster
-	Initialise(slotCount int, nodes []string) error
+	Initialise(slotCountperNode int, nodes []string) error
 
 	// Returns the location of the leader and follower slot and corresponding node
 	GetLocation(key string) (leader *SlotAndNode, follower *SlotAndNode, err error)
