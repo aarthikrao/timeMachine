@@ -125,7 +125,7 @@ func (c *ConfigFSM) GetLastUpdatedTime() int {
 	return c.nc.LastContactTime
 }
 
-func (c *ConfigFSM) GetNodeVsStruct() map[dht.NodeID][]dht.SlotID {
+func (c *ConfigFSM) GetNodeVsSlots() map[dht.NodeID][]dht.SlotID {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
 

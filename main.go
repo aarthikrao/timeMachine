@@ -64,7 +64,7 @@ func main() {
 	)
 
 	if !*bootstrap {
-		nodeVsSlot := fsmStore.GetNodeVsStruct()
+		nodeVsSlot := fsmStore.GetNodeVsSlots()
 		if len(nodeVsSlot) <= 0 {
 			panic("There are no slots for this node. Did you mean to start this node in bootstrap mode")
 		}
@@ -75,10 +75,8 @@ func main() {
 			panic(err)
 		}
 
-		// Initialse the connection manager
-		addrMap := fsmStore.GetNodeAddressMap()
-
 		// Create connections to other nodes
+		addrMap := fsmStore.GetNodeAddressMap()
 		for nodeID, address := range addrMap {
 			connMgr.AddNewConnection(nodeID, address) // TODO: The nodes may not be available at the start time. We have to retry.
 		}
@@ -107,6 +105,7 @@ func main() {
 	srv := InitTimeMachineHttpServer(clientProcess, raft, log, *httpPort)
 	go srv.ListenAndServe()
 
+	// TODO: Implement adding this config from REST API after bootstrap.
 	// Just for testing
 	// go func() {
 	// 	for {

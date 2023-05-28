@@ -6,5 +6,5 @@ type NodeConfig interface {
 	// Returns the last updated time
 	GetLastUpdatedTime() int
 
-	GetNodeVsStruct() map[dht.NodeID][]dht.SlotID
+	GetNodeVsSlots() map[dht.NodeID][]dht.SlotID
 }
