@@ -103,7 +103,12 @@ func main() {
 	clientProcess := client.CreateClientProcess(nodeMgr)
 
 	srv := InitTimeMachineHttpServer(clientProcess, raft, log, *httpPort)
-	go srv.ListenAndServe()
+	go func() {
+		err := srv.ListenAndServe()
+		if err != nil {
+			panic(err)
+		}
+	}()
 
 	// TODO: Implement adding this config from REST API after bootstrap.
 	// Just for testing
