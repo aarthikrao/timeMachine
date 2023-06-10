@@ -63,7 +63,11 @@ func main() {
 		connMgr *connectionmanager.ConnectionManager = connectionmanager.CreateConnectionManager(log)
 	)
 
-	if !*bootstrap {
+	// Initialises the data store and connections to other nodes in the cluster.
+	// This method is called after the cluster is formed and slots are computed.
+	// Here we are just defining the method. It will be called once the node vs slots
+	// values are ready.
+	initialiseDatastoreAndConn := func() {
 		nodeVsSlot := fsmStore.GetNodeVsSlots()
 		if len(nodeVsSlot) <= 0 {
 			panic("There are no slots for this node. Did you mean to start this node in bootstrap mode")
@@ -75,11 +79,14 @@ func main() {
 			panic(err)
 		}
 
-		// Create connections to other nodes
 		addrMap := fsmStore.GetNodeAddressMap()
 		for nodeID, address := range addrMap {
-			connMgr.AddNewConnection(nodeID, address) // TODO: The nodes may not be available at the start time. We have to retry.
+			connMgr.AddNewConnection(nodeID, address)
 		}
+	}
+
+	if !*bootstrap {
+		initialiseDatastoreAndConn()
 
 	} else {
 		// This means the node has started in bootstrap mode.
@@ -102,7 +109,13 @@ func main() {
 	// Initialise process
 	clientProcess := client.CreateClientProcess(nodeMgr)
 
-	srv := InitTimeMachineHttpServer(clientProcess, raft, log, *httpPort)
+	srv := InitTimeMachineHttpServer(
+		clientProcess,
+		raft,
+		initialiseDatastoreAndConn,
+		log,
+		*httpPort,
+	)
 	go func() {
 		err := srv.ListenAndServe()
 		if err != nil {

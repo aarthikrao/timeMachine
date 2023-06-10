@@ -15,6 +15,7 @@ import (
 func InitTimeMachineHttpServer(
 	cp *client.ClientProcess,
 	con concensus.Concensus,
+	onClusterFormHandler func(),
 	log *zap.Logger,
 	port int,
 ) *http.Server {
