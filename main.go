@@ -67,7 +67,7 @@ func main() {
 	// This method is called after the cluster is formed and slots are computed.
 	// Here we are just defining the method. It will be called once the node vs slots
 	// values are ready.
-	initialiseDatastoreAndConn := func() {
+	var initialiseDatastoreAndConn = func() {
 		nodeVsSlot := fsmStore.GetNodeVsSlots()
 		if len(nodeVsSlot) <= 0 {
 			panic("There are no slots for this node. Did you mean to start this node in bootstrap mode")
@@ -81,7 +81,14 @@ func main() {
 
 		addrMap := fsmStore.GetNodeAddressMap()
 		for nodeID, address := range addrMap {
-			connMgr.AddNewConnection(nodeID, address)
+			err := connMgr.AddNewConnection(nodeID, address)
+			if err != nil {
+				log.Error("Unable to add connection",
+					zap.String("nodeID", nodeID),
+					zap.String("address", address),
+					zap.Error(err),
+				)
+			}
 		}
 	}
 
@@ -111,6 +118,7 @@ func main() {
 
 	srv := InitTimeMachineHttpServer(
 		clientProcess,
+		appDht,
 		raft,
 		initialiseDatastoreAndConn,
 		log,
