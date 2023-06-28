@@ -6,18 +6,15 @@ import (
 	"io/ioutil"
 	"sync"
 
-	"github.com/aarthikrao/timeMachine/components/dht"
 	"github.com/hashicorp/raft"
-	"github.com/pkg/errors"
 	"go.uber.org/zap"
 )
 
 // TODO: Optimise and check proper concurency
 type ConfigFSM struct {
-	nc *nodeConfig
+	nc *NodeConfigHolder
 
-	// slotVsNodeHandler handles the changes in slot vs node map changes
-	slotVsNodeHandler func(map[dht.NodeID][]dht.SlotID) error
+	lastUpdateTime int
 
 	mu  sync.RWMutex
 	log *zap.Logger
@@ -83,7 +80,7 @@ func (c *ConfigFSM) Restore(r io.ReadCloser) error {
 		return err
 	}
 
-	var nc nodeConfig
+	var nc NodeConfigHolder
 	err = json.Unmarshal(b, &nc)
 	if err != nil {
 		return err
@@ -105,14 +102,7 @@ func (c *ConfigFSM) handleChange(data []byte) error {
 	switch cmd.Operation {
 	case SlotVsNodeChange:
 		// Decode the data change for slot vs node change
-		var m map[dht.NodeID][]dht.SlotID
-		err := json.Unmarshal(cmd.Data, &m)
-		if err != nil {
-			return errors.Wrap(err, "slotvsNode Handler ")
-		}
 
-		c.nc.slotVsNode = m
-		return c.slotVsNodeHandler(m)
 	}
 
 	return nil
@@ -122,19 +112,5 @@ func (c *ConfigFSM) GetLastUpdatedTime() int {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
 
-	return c.nc.LastContactTime
-}
-
-func (c *ConfigFSM) GetNodeVsSlots() map[dht.NodeID][]dht.SlotID {
-	c.mu.RLock()
-	defer c.mu.RUnlock()
-
-	return c.nc.slotVsNode
-}
-
-func (c *ConfigFSM) GetNodeAddressMap() map[string]string {
-	c.mu.RLock()
-	defer c.mu.RUnlock()
-
-	return c.nc.nodeAddress // TODO: Revisit for set method
+	return c.lastUpdateTime
 }

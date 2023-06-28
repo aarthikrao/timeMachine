@@ -14,6 +14,7 @@ import (
 	"github.com/aarthikrao/timeMachine/process/connectionmanager"
 	dsm "github.com/aarthikrao/timeMachine/process/datastoremanager"
 	"github.com/aarthikrao/timeMachine/process/nodemanager"
+	"github.com/aarthikrao/timeMachine/utils/address"
 	"go.uber.org/zap"
 )
 
@@ -53,7 +54,8 @@ func main() {
 		*bootstrap,
 	)
 	if err != nil {
-		log.Fatal("Unable to start raft", zap.Error(err))
+		log.Fatal("Unable to start raft")
+		panic(err)
 	}
 
 	var (
@@ -68,27 +70,37 @@ func main() {
 	// Here we are just defining the method. It will be called once the node vs slots
 	// values are ready.
 	var initialiseDatastoreAndConn = func() {
-		nodeVsSlot := fsmStore.GetNodeVsSlots()
-		if len(nodeVsSlot) <= 0 {
+		thisNodeID := dht.NodeID(*nodeID)
+		slots := appDht.GetSlotsForNode(thisNodeID)
+		if len(slots) <= 0 {
 			panic("There are no slots for this node. Did you mean to start this node in bootstrap mode")
 		}
 
-		thisNodeID := dht.NodeID(*nodeID)
-		slots := nodeVsSlot[thisNodeID]
 		if err := dsmgr.InitialiseDataStores(slots); err != nil {
 			panic(err)
 		}
 
-		addrMap := fsmStore.GetNodeAddressMap()
-		for nodeID, address := range addrMap {
-			err := connMgr.AddNewConnection(nodeID, address)
-			if err != nil {
+		servers, err := raft.GetConfigurations()
+		if err != nil {
+			return
+		}
+
+		for _, server := range servers {
+			serverID := string(server.ID)
+			grpcAddress := address.GetGRPCAddress(string(server.Address))
+
+			if err := connMgr.AddNewConnection(serverID, grpcAddress); err != nil {
 				log.Error("Unable to add connection",
-					zap.String("nodeID", nodeID),
-					zap.String("address", address),
+					zap.String("serverID", serverID),
+					zap.String("address", grpcAddress),
 					zap.Error(err),
 				)
+			} else {
+				log.Info("Added GRPC connection",
+					zap.String("serverID", serverID),
+					zap.String("addr", grpcAddress))
 			}
+
 		}
 	}
 
@@ -111,6 +123,7 @@ func main() {
 		dsmgr,
 		connMgr,
 		appDht,
+		raft,
 	)
 
 	// Initialise process
@@ -121,6 +134,7 @@ func main() {
 		appDht,
 		raft,
 		initialiseDatastoreAndConn,
+		nodeMgr,
 		log,
 		*httpPort,
 	)

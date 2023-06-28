@@ -115,11 +115,25 @@ func (d *dht) Load(data []byte) error {
 }
 
 // Snapshot returns the node vs slot ids map in json format
-func (d *dht) Snapshot() (data []byte, err error) {
+func (d *dht) Snapshot() map[SlotID]*SlotInfo {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 
-	return json.Marshal(&d.slotVsNodes)
+	return d.slotVsNodes // TODO: Verify if this will share memory
+}
+
+func (d *dht) GetSlotsForNode(nodeID NodeID) []SlotID {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+
+	var slots []SlotID
+	for slotID, slotInfo := range d.slotVsNodes {
+		if slotInfo.NodeID == nodeID {
+			slots = append(slots, slotID)
+		}
+	}
+
+	return slots
 }
 
 // Returns the location of the leader and follower slots and their corresponding nodes

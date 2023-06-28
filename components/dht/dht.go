@@ -26,10 +26,12 @@ type DHT interface {
 	// Returns the location of the leader and follower slot and corresponding node
 	GetLocation(key string) (leader *SlotAndNode, follower *SlotAndNode, err error)
 
+	GetSlotsForNode(nodeID NodeID) []SlotID
+
 	// Load Loads data from a already existing configuration.
 	// This must be taken called after confirmation from the master
 	// Snapshot returns the current node vs slot ids map
 	// Both the methods use json format.
 	Load(data []byte) error
-	Snapshot() (data []byte, err error)
+	Snapshot() map[SlotID]*SlotInfo
 }

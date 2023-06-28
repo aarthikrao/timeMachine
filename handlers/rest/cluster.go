@@ -6,6 +6,7 @@ import (
 	"github.com/aarthikrao/timeMachine/components/concensus"
 	"github.com/aarthikrao/timeMachine/components/dht"
 	"github.com/aarthikrao/timeMachine/models/config"
+	"github.com/aarthikrao/timeMachine/process/nodemanager"
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 )
@@ -19,14 +20,16 @@ type clusterRestHandler struct {
 	cp                   concensus.Concensus
 	appDht               dht.DHT
 	onClusterFormHandler func()
+	nodeMgr              *nodemanager.NodeManager
 	log                  *zap.Logger
 }
 
-func CreateClusterRestHandler(cp concensus.Concensus, appDht dht.DHT, onClusterFormHandler func(), log *zap.Logger) *clusterRestHandler {
+func CreateClusterRestHandler(cp concensus.Concensus, appDht dht.DHT, onClusterFormHandler func(), nodeMgr *nodemanager.NodeManager, log *zap.Logger) *clusterRestHandler {
 	return &clusterRestHandler{
 		cp:                   cp,
 		appDht:               appDht,
 		onClusterFormHandler: onClusterFormHandler,
+		nodeMgr:              nodeMgr,
 		log:                  log,
 	}
 }
@@ -125,21 +128,12 @@ func (crh *clusterRestHandler) Configure(c *gin.Context) {
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 	}
 
-	servers, err := crh.cp.GetConfigurations()
-	if err != nil {
-		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-	var nodes []string
-	for _, server := range servers {
-		nodes = append(nodes, string(server.ID))
-	}
-
-	err = crh.appDht.Initialise(cf.SlotPerNodeCount, nodes)
+	err := crh.nodeMgr.InitAppDHT(cf.SlotPerNodeCount)
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
+	// TODO: Update the raft about dht mapping
 	crh.onClusterFormHandler()
 }

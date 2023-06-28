@@ -3,6 +3,7 @@ package nodemanager
 import (
 	"errors"
 
+	"github.com/aarthikrao/timeMachine/components/concensus"
 	"github.com/aarthikrao/timeMachine/components/dht"
 	js "github.com/aarthikrao/timeMachine/components/jobstore"
 	"github.com/aarthikrao/timeMachine/process/connectionmanager"
@@ -22,6 +23,8 @@ type NodeManager struct {
 	connMgr *connectionmanager.ConnectionManager
 
 	dhtMgr dht.DHT
+
+	cp concensus.Concensus
 }
 
 func CreateNodeManager(
@@ -29,13 +32,30 @@ func CreateNodeManager(
 	dsmgr *dsm.DataStoreManager,
 	connMgr *connectionmanager.ConnectionManager,
 	dhtMgr dht.DHT,
+	cp concensus.Concensus,
 ) *NodeManager {
 	return &NodeManager{
 		selfNodeID: dht.NodeID(selfNodeID),
 		dsmgr:      dsmgr,
 		dhtMgr:     dhtMgr,
 		connMgr:    connMgr,
+		cp:         cp,
 	}
+}
+
+// Initialises the app DHT from the server list.
+func (nm *NodeManager) InitAppDHT(slotsPerNode int) error {
+	servers, err := nm.cp.GetConfigurations()
+	if err != nil {
+		return err
+	}
+	var nodes []string
+	for _, server := range servers {
+		serverID := string(server.ID)
+		nodes = append(nodes, serverID)
+	}
+
+	return nm.dhtMgr.Initialise(slotsPerNode, nodes)
 }
 
 // Returns the location interface of the key. If the node is present on the same node,

@@ -8,6 +8,7 @@ import (
 	"github.com/aarthikrao/timeMachine/components/concensus"
 	"github.com/aarthikrao/timeMachine/components/dht"
 	"github.com/aarthikrao/timeMachine/handlers/rest"
+	"github.com/aarthikrao/timeMachine/process/nodemanager"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
@@ -18,6 +19,7 @@ func InitTimeMachineHttpServer(
 	appDht dht.DHT,
 	con concensus.Concensus,
 	onClusterFormHandler func(),
+	nodeMgr *nodemanager.NodeManager,
 	log *zap.Logger,
 	port int,
 ) *http.Server {
@@ -35,7 +37,7 @@ func InitTimeMachineHttpServer(
 	})
 
 	// Cluster handlers
-	crh := rest.CreateClusterRestHandler(con, appDht, onClusterFormHandler, log)
+	crh := rest.CreateClusterRestHandler(con, appDht, onClusterFormHandler, nodeMgr, log)
 	cluster := r.Group("/cluster")
 	{
 		cluster.GET("", crh.GetStats)
