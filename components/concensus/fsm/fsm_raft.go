@@ -6,15 +6,20 @@ import (
 	"io/ioutil"
 	"sync"
 
+	"github.com/aarthikrao/timeMachine/components/dht"
 	"github.com/hashicorp/raft"
 	"go.uber.org/zap"
 )
 
 // TODO: Optimise and check proper concurency
 type ConfigFSM struct {
-	nc *NodeConfigHolder
-
 	lastUpdateTime int
+
+	dht dht.DHT
+
+	// This function will be called by the config FSM when a change in configuration occurs.
+	// You can use this function to update the node connections etc.
+	onChangeHandler func() error
 
 	mu  sync.RWMutex
 	log *zap.Logger
@@ -29,8 +34,12 @@ var (
 	_ NodeConfig = &ConfigFSM{}
 )
 
-func NewConfigFSM(log *zap.Logger) *ConfigFSM {
+func NewConfigFSM(
+	dht dht.DHT,
+	log *zap.Logger,
+) *ConfigFSM {
 	return &ConfigFSM{
+		dht: dht,
 		log: log,
 	}
 }
@@ -63,12 +72,9 @@ func (c *ConfigFSM) Snapshot() (raft.FSMSnapshot, error) {
 	defer c.mu.Unlock()
 
 	// Get bytes of node config
-	by, err := json.Marshal(c.nc)
-	if err != nil {
-		return nil, err
-	}
+	// TODO: Add snapshot of current node configuration
 
-	return NewSnapshot(by), nil
+	return NewSnapshot(nil), nil // Add bytes here
 }
 
 // Restore is used to restore an FSM from a Snapshot. It is not called
@@ -80,13 +86,13 @@ func (c *ConfigFSM) Restore(r io.ReadCloser) error {
 		return err
 	}
 
-	var nc NodeConfigHolder
-	err = json.Unmarshal(b, &nc)
+	var cs ConfigSnapshot
+	err = json.Unmarshal(b, &cs)
 	if err != nil {
 		return err
 	}
 
-	c.nc = &nc
+	c.handleSlotNodeChange(&cs)
 	return nil
 }
 
@@ -102,7 +108,13 @@ func (c *ConfigFSM) handleChange(data []byte) error {
 	switch cmd.Operation {
 	case SlotVsNodeChange:
 		// Decode the data change for slot vs node change
+		var cs ConfigSnapshot
+		err = json.Unmarshal(cmd.Data, &cs)
+		if err != nil {
+			return err
+		}
 
+		c.handleSlotNodeChange(&cs)
 	}
 
 	return nil
@@ -113,4 +125,23 @@ func (c *ConfigFSM) GetLastUpdatedTime() int {
 	defer c.mu.RUnlock()
 
 	return c.lastUpdateTime
+}
+
+func (c *ConfigFSM) SetChangeHandler(fn func() error) {
+	c.onChangeHandler = fn
+}
+
+// Called when there is a change in node vs slot change.
+// Assume that the state of node has changed and re-init everything
+func (c *ConfigFSM) handleSlotNodeChange(cs *ConfigSnapshot) {
+
+	// Re-initialise the DHT
+	err := c.dht.Load(cs.Slots)
+	if err != nil {
+		c.log.Error("Unable to load dht in FSM", zap.Any("cs", cs), zap.Error(err))
+		return
+	}
+
+	// Update the connections
+	c.onChangeHandler()
 }

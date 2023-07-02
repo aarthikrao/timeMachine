@@ -31,7 +31,6 @@ type DHT interface {
 	// Load Loads data from a already existing configuration.
 	// This must be taken called after confirmation from the master
 	// Snapshot returns the current node vs slot ids map
-	// Both the methods use json format.
-	Load(data []byte) error
+	Load(slots map[SlotID]*SlotInfo) error
 	Snapshot() map[SlotID]*SlotInfo
 }

@@ -8,6 +8,8 @@ import (
 	js "github.com/aarthikrao/timeMachine/components/jobstore"
 	"github.com/aarthikrao/timeMachine/process/connectionmanager"
 	dsm "github.com/aarthikrao/timeMachine/process/datastoremanager"
+	"github.com/aarthikrao/timeMachine/utils/address"
+	"go.uber.org/zap"
 )
 
 var (
@@ -25,6 +27,8 @@ type NodeManager struct {
 	dhtMgr dht.DHT
 
 	cp concensus.Concensus
+
+	log *zap.Logger
 }
 
 func CreateNodeManager(
@@ -33,6 +37,7 @@ func CreateNodeManager(
 	connMgr *connectionmanager.ConnectionManager,
 	dhtMgr dht.DHT,
 	cp concensus.Concensus,
+	log *zap.Logger,
 ) *NodeManager {
 	return &NodeManager{
 		selfNodeID: dht.NodeID(selfNodeID),
@@ -40,6 +45,7 @@ func CreateNodeManager(
 		dhtMgr:     dhtMgr,
 		connMgr:    connMgr,
 		cp:         cp,
+		log:        log,
 	}
 }
 
@@ -56,6 +62,31 @@ func (nm *NodeManager) InitAppDHT(slotsPerNode int) error {
 	}
 
 	return nm.dhtMgr.Initialise(slotsPerNode, nodes)
+}
+
+func (nm *NodeManager) CreateConnections() error {
+	servers, err := nm.cp.GetConfigurations()
+	if err != nil {
+		return err
+	}
+
+	for _, server := range servers {
+		serverID := string(server.ID)
+		grpcAddress := address.GetGRPCAddress(string(server.Address))
+
+		if err := nm.connMgr.AddNewConnection(serverID, grpcAddress); err != nil {
+			nm.log.Error("Unable to add connection",
+				zap.String("serverID", serverID),
+				zap.String("address", grpcAddress),
+				zap.Error(err),
+			)
+		} else {
+			nm.log.Info("Added GRPC connection",
+				zap.String("serverID", serverID),
+				zap.String("addr", grpcAddress))
+		}
+	}
+	return nil
 }
 
 // Returns the location interface of the key. If the node is present on the same node,

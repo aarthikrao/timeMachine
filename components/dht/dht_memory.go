@@ -102,16 +102,12 @@ func (d *dht) Initialise(slotCountperNode int, nodes []string) error {
 
 // Loads data from a already existing configuration.
 // This must be called only after confirmation from the master
-func (d *dht) Load(data []byte) error {
+func (d *dht) Load(slots map[SlotID]*SlotInfo) error {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 
-	if len(d.slotVsNodes) > 0 {
-		return ErrAlreadyInitialised
-	}
-
-	slotVsNodes := make(map[SlotID]*SlotInfo)
-	return json.Unmarshal(data, &slotVsNodes)
+	d.slotVsNodes = slots // TODO: Verify if this will share memory
+	return nil
 }
 
 // Snapshot returns the node vs slot ids map in json format

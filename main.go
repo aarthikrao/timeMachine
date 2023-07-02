@@ -14,7 +14,6 @@ import (
 	"github.com/aarthikrao/timeMachine/process/connectionmanager"
 	dsm "github.com/aarthikrao/timeMachine/process/datastoremanager"
 	"github.com/aarthikrao/timeMachine/process/nodemanager"
-	"github.com/aarthikrao/timeMachine/utils/address"
 	"go.uber.org/zap"
 )
 
@@ -41,8 +40,18 @@ func main() {
 
 	log, _ := zap.NewDevelopment()
 
+	var (
+		// appDht will store the distributed hash table of this node
+		appDht  dht.DHT                              = dht.Create()
+		dsmgr   *dsm.DataStoreManager                = dsm.CreateDataStore(boltDataDir, log)
+		connMgr *connectionmanager.ConnectionManager = connectionmanager.CreateConnectionManager(log)
+	)
+
 	// Initialise the FSM store
-	fsmStore := fsm.NewConfigFSM(log)
+	fsmStore := fsm.NewConfigFSM(
+		appDht,
+		log,
+	)
 
 	// Initialise raft
 	raft, err := concensus.NewRaftConcensus(
@@ -58,12 +67,22 @@ func main() {
 		panic(err)
 	}
 
-	var (
-		// appDht will store the distributed hash table of this node
-		appDht  dht.DHT                              = dht.Create()
-		dsmgr   *dsm.DataStoreManager                = dsm.CreateDataStore(boltDataDir, log)
-		connMgr *connectionmanager.ConnectionManager = connectionmanager.CreateConnectionManager(log)
+	// Initialise node manager
+	nodeMgr := nodemanager.CreateNodeManager(
+		*nodeID,
+		dsmgr,
+		connMgr,
+		appDht,
+		raft,
+		log,
 	)
+
+	// This method will be called by the FSM store if there are any changes.
+	// We will initialise the connections in the nodeMgr with the latest cluster configuration
+	fsmStore.SetChangeHandler(nodeMgr.CreateConnections)
+
+	// Initialise process
+	clientProcess := client.CreateClientProcess(nodeMgr)
 
 	// Initialises the data store and connections to other nodes in the cluster.
 	// This method is called after the cluster is formed and slots are computed.
@@ -80,27 +99,8 @@ func main() {
 			panic(err)
 		}
 
-		servers, err := raft.GetConfigurations()
-		if err != nil {
-			return
-		}
-
-		for _, server := range servers {
-			serverID := string(server.ID)
-			grpcAddress := address.GetGRPCAddress(string(server.Address))
-
-			if err := connMgr.AddNewConnection(serverID, grpcAddress); err != nil {
-				log.Error("Unable to add connection",
-					zap.String("serverID", serverID),
-					zap.String("address", grpcAddress),
-					zap.Error(err),
-				)
-			} else {
-				log.Info("Added GRPC connection",
-					zap.String("serverID", serverID),
-					zap.String("addr", grpcAddress))
-			}
-
+		if err := nodeMgr.CreateConnections(); err != nil {
+			panic(err)
 		}
 	}
 
@@ -116,18 +116,6 @@ func main() {
 		// 	3. Communicate with all the nodes in the raft group and apply the DHT in all the nodes.
 		log.Warn("NodeVsSlot and datastores not yet initialised. Consider rebalancing the cluster once started")
 	}
-
-	// Initialise node manager
-	nodeMgr := nodemanager.CreateNodeManager(
-		*nodeID,
-		dsmgr,
-		connMgr,
-		appDht,
-		raft,
-	)
-
-	// Initialise process
-	clientProcess := client.CreateClientProcess(nodeMgr)
 
 	srv := InitTimeMachineHttpServer(
 		clientProcess,
