@@ -32,6 +32,7 @@ type DataStoreManager struct {
 func CreateDataStore(parentDirectory string, log *zap.Logger) *DataStoreManager {
 	dsm := &DataStoreManager{
 		parentDirectory: parentDirectory,
+		slotsOwned:      make(map[dht.SlotID]js.JobStoreConn),
 		log:             log,
 	}
 

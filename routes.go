@@ -18,7 +18,6 @@ func InitTimeMachineHttpServer(
 	cp *client.ClientProcess,
 	appDht dht.DHT,
 	con concensus.Concensus,
-	onClusterFormHandler func(),
 	nodeMgr *nodemanager.NodeManager,
 	log *zap.Logger,
 	port int,
@@ -37,7 +36,7 @@ func InitTimeMachineHttpServer(
 	})
 
 	// Cluster handlers
-	crh := rest.CreateClusterRestHandler(con, appDht, onClusterFormHandler, nodeMgr, log)
+	crh := rest.CreateClusterRestHandler(con, appDht, nodeMgr, log)
 	cluster := r.Group("/cluster")
 	{
 		cluster.GET("", crh.GetStats)

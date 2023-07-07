@@ -79,33 +79,13 @@ func main() {
 
 	// This method will be called by the FSM store if there are any changes.
 	// We will initialise the connections in the nodeMgr with the latest cluster configuration
-	fsmStore.SetChangeHandler(nodeMgr.CreateConnections)
+	fsmStore.SetChangeHandler(nodeMgr.InitialiseNode)
 
 	// Initialise process
 	clientProcess := client.CreateClientProcess(nodeMgr)
 
-	// Initialises the data store and connections to other nodes in the cluster.
-	// This method is called after the cluster is formed and slots are computed.
-	// Here we are just defining the method. It will be called once the node vs slots
-	// values are ready.
-	var initialiseDatastoreAndConn = func() {
-		thisNodeID := dht.NodeID(*nodeID)
-		slots := appDht.GetSlotsForNode(thisNodeID)
-		if len(slots) <= 0 {
-			panic("There are no slots for this node. Did you mean to start this node in bootstrap mode")
-		}
-
-		if err := dsmgr.InitialiseDataStores(slots); err != nil {
-			panic(err)
-		}
-
-		if err := nodeMgr.CreateConnections(); err != nil {
-			panic(err)
-		}
-	}
-
 	if !*bootstrap {
-		initialiseDatastoreAndConn()
+		nodeMgr.InitialiseNode()
 
 	} else {
 		// This means the node has started in bootstrap mode.
@@ -121,7 +101,6 @@ func main() {
 		clientProcess,
 		appDht,
 		raft,
-		initialiseDatastoreAndConn,
 		nodeMgr,
 		log,
 		*httpPort,
@@ -132,26 +111,6 @@ func main() {
 			panic(err)
 		}
 	}()
-
-	// TODO: Implement adding this config from REST API after bootstrap.
-	// Just for testing
-	// go func() {
-	// 	for {
-	// 		if raft.IsLeader() {
-	// 			log.Info("Is leader")
-	// 			val := fsm.NodeConfig{
-	// 				LastContactTime: timeUtils.GetCurrentMillis(),
-	// 			}
-	// 			by, err := json.Marshal(val)
-	// 			if err != nil {
-	// 				log.Error("Unable to marshal", zap.Error(err))
-	// 			}
-	// 			raft.Apply(by)
-	// 		}
-	// 		log.Info("sleep")
-	// 		time.Sleep(1 * time.Second)
-	// 	}
-	// }()
 
 	log.Info("Started time machine DB 🐓")
 

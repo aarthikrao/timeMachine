@@ -2,6 +2,8 @@ package fsm
 
 import (
 	"encoding/json"
+
+	"github.com/aarthikrao/timeMachine/components/dht"
 )
 
 type OperationType int
@@ -15,9 +17,16 @@ const (
 	InitialiseNodes OperationType = 2
 )
 
+// This is a wrapper to propagate the changes to all nodes
 type Command struct {
 	Operation OperationType
 
 	// Contains the rest of the data
 	Data json.RawMessage
+}
+
+// ConfigSnapshot is a snapshot of the current state of the node.
+// It is replicated across all the nodes in the cluster with Raft.
+type ConfigSnapshot struct {
+	Slots map[dht.SlotID]*dht.SlotInfo
 }

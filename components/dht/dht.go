@@ -19,10 +19,6 @@ var (
 // DHT contains the location of a given key in a distributed data system.
 type DHT interface {
 
-	// Creates a new distributed hash table from the inputs.
-	// Should be called only from bootstrap mode or while creating a new cluster
-	Initialise(slotCountperNode int, nodes []string) error
-
 	// Returns the location of the leader and follower slot and corresponding node
 	GetLocation(key string) (leader *SlotAndNode, follower *SlotAndNode, err error)
 

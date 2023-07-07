@@ -9,7 +9,8 @@ var d *dht
 
 func init() {
 	d = Create()
-	err := d.Initialise(4, []string{"node1", "node2", "node3"})
+	slotsVsNodes, err := Initialise(4, []string{"node1", "node2", "node3"})
+	d.Load(slotsVsNodes)
 	if err != nil {
 		panic(err)
 	}

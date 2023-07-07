@@ -61,10 +61,40 @@ func (nm *NodeManager) InitAppDHT(slotsPerNode int) error {
 		nodes = append(nodes, serverID)
 	}
 
-	return nm.dhtMgr.Initialise(slotsPerNode, nodes)
+	sn, err := dht.Initialise(slotsPerNode, nodes)
+	if err != nil {
+		nm.log.Error("Unable to initialise dht", zap.Error(err))
+		return err
+	}
+
+	by, err := concensus.ConvertConfigSnapshot(sn)
+	if err != nil {
+		return err
+	}
+
+	return nm.cp.Apply(by)
 }
 
-func (nm *NodeManager) CreateConnections() error {
+// InitialiseNode will be called once the dht is initialised.
+// It will help setting up the connections and initialise the datastores
+func (nm *NodeManager) InitialiseNode() error {
+	slots := nm.dhtMgr.GetSlotsForNode(nm.selfNodeID)
+	if len(slots) <= 0 {
+		return dht.ErrNotInitialised
+	}
+
+	if err := nm.dsmgr.InitialiseDataStores(slots); err != nil {
+		return err
+	}
+
+	if err := nm.createConnections(); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (nm *NodeManager) createConnections() error {
 	servers, err := nm.cp.GetConfigurations()
 	if err != nil {
 		return err

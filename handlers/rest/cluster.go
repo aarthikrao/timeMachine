@@ -17,20 +17,23 @@ type clusterMessage struct {
 }
 
 type clusterRestHandler struct {
-	cp                   concensus.Concensus
-	appDht               dht.DHT
-	onClusterFormHandler func()
-	nodeMgr              *nodemanager.NodeManager
-	log                  *zap.Logger
+	cp      concensus.Concensus
+	appDht  dht.DHT
+	nodeMgr *nodemanager.NodeManager
+	log     *zap.Logger
 }
 
-func CreateClusterRestHandler(cp concensus.Concensus, appDht dht.DHT, onClusterFormHandler func(), nodeMgr *nodemanager.NodeManager, log *zap.Logger) *clusterRestHandler {
+func CreateClusterRestHandler(
+	cp concensus.Concensus,
+	appDht dht.DHT,
+	nodeMgr *nodemanager.NodeManager,
+	log *zap.Logger,
+) *clusterRestHandler {
 	return &clusterRestHandler{
-		cp:                   cp,
-		appDht:               appDht,
-		onClusterFormHandler: onClusterFormHandler,
-		nodeMgr:              nodeMgr,
-		log:                  log,
+		cp:      cp,
+		appDht:  appDht,
+		nodeMgr: nodeMgr,
+		log:     log,
 	}
 }
 
@@ -134,6 +137,7 @@ func (crh *clusterRestHandler) Configure(c *gin.Context) {
 		return
 	}
 
-	// TODO: Update the raft about dht mapping
-	crh.onClusterFormHandler()
+	c.JSON(http.StatusOK, gin.H{
+		"status": "ok",
+	})
 }

@@ -43,20 +43,16 @@ func Create() *dht {
 
 // Creates a new distributed hash table from the inputs.
 // Should be called only from bootstrap mode or while creating a new cluster
-func (d *dht) Initialise(slotCountperNode int, nodes []string) error {
-	d.mu.Lock()
-	defer d.mu.Unlock()
+func Initialise(slotCountperNode int, nodes []string) (map[SlotID]*SlotInfo, error) {
 
-	if len(d.slotVsNodes) > 0 {
-		return ErrAlreadyInitialised
+	d := &dht{
+		slotVsNodes: make(map[SlotID]*SlotInfo),
 	}
-
 	// nodeVsSlot contains the mapping of nodeID to slotID.
 	nodeVsSlot := make(map[NodeID][]SlotID)
 
 	nodeCount := len(nodes)
 	slotCount := slotCountperNode * nodeCount
-	d.slotVsNodes = make(map[SlotID]*SlotInfo)
 
 	// The distribution below makes sure the slots are
 	// assigned equally in a round robin manner
@@ -94,10 +90,10 @@ func (d *dht) Initialise(slotCountperNode int, nodes []string) error {
 		}
 	}
 
-	by, _ := json.Marshal(d.slotVsNodes)
+	by, _ := json.Marshal(d.slotVsNodes) // TODO: Remove
 	fmt.Printf("Slot Info: %s\n", string(by))
 
-	return nil
+	return d.slotVsNodes, nil
 }
 
 // Loads data from a already existing configuration.
