@@ -39,6 +39,7 @@ func main() {
 	raftDataDir := baseDir + "/raft"
 
 	log, _ := zap.NewDevelopment()
+	log = log.With(zap.String("nodeID", *nodeID))
 
 	var (
 		// appDht will store the distributed hash table of this node

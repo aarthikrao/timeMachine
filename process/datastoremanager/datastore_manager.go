@@ -48,7 +48,7 @@ func (dsm *DataStoreManager) InitialiseDataStores(slots []dht.SlotID) error {
 		}
 
 		dsm.slotsOwned[slot] = datastore
-		dsm.log.Info("initialised node", zap.Int("slot", int(slot)), zap.String("path", path))
+		dsm.log.Info("initialised data store node", zap.Int("slot", int(slot)), zap.String("path", path))
 	}
 
 	return nil

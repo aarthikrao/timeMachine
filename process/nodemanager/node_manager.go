@@ -50,6 +50,7 @@ func CreateNodeManager(
 }
 
 // Initialises the app DHT from the server list.
+// It also publishes the slot and node map to other nodes via concensus module
 func (nm *NodeManager) InitAppDHT(slotsPerNode int) error {
 	servers, err := nm.cp.GetConfigurations()
 	if err != nil {
@@ -91,6 +92,7 @@ func (nm *NodeManager) InitialiseNode() error {
 		return err
 	}
 
+	nm.log.Info("Initialsed node")
 	return nil
 }
 

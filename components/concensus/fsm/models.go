@@ -19,14 +19,14 @@ const (
 
 // This is a wrapper to propagate the changes to all nodes
 type Command struct {
-	Operation OperationType
+	Operation OperationType `json:"operation,omitempty" bson:"operation,omitempty"`
 
 	// Contains the rest of the data
-	Data json.RawMessage
+	Data json.RawMessage `json:"data,omitempty" bson:"data,omitempty"`
 }
 
 // ConfigSnapshot is a snapshot of the current state of the node.
 // It is replicated across all the nodes in the cluster with Raft.
 type ConfigSnapshot struct {
-	Slots map[dht.SlotID]*dht.SlotInfo
+	Slots map[dht.SlotID]*dht.SlotInfo `json:"slots,omitempty" bson:"slots,omitempty"`
 }

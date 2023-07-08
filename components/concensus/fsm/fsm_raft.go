@@ -100,10 +100,12 @@ func (c *ConfigFSM) Restore(r io.ReadCloser) error {
 func (c *ConfigFSM) handleChange(data []byte) error {
 
 	var cmd Command
-	err := json.Unmarshal(data, &c)
+	err := json.Unmarshal(data, &cmd)
 	if err != nil {
 		return err
 	}
+
+	c.log.Info("Recieved raft command", zap.Any("cmd", cmd))
 
 	switch cmd.Operation {
 	case SlotVsNodeChange:
