@@ -12,12 +12,12 @@ func TestGetGRPCAddress(t *testing.T) {
 		want string
 	}{
 		{
-			name: "localhost:8000",
-			args: args{hostandport: "localhost:8000"},
+			name: "localhost:8100",
+			args: args{hostandport: "localhost:8100"},
 			want: "localhost:8200",
 		}, {
-			name: "localhost:18000",
-			args: args{hostandport: "localhost:18000"},
+			name: "localhost:18100",
+			args: args{hostandport: "localhost:18100"},
 			want: "localhost:18200",
 		},
 	}
