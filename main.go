@@ -11,9 +11,11 @@ import (
 	"github.com/aarthikrao/timeMachine/components/concensus"
 	"github.com/aarthikrao/timeMachine/components/concensus/fsm"
 	"github.com/aarthikrao/timeMachine/components/dht"
+	"github.com/aarthikrao/timeMachine/components/network/server"
 	"github.com/aarthikrao/timeMachine/process/connectionmanager"
 	dsm "github.com/aarthikrao/timeMachine/process/datastoremanager"
 	"github.com/aarthikrao/timeMachine/process/nodemanager"
+	"github.com/aarthikrao/timeMachine/utils/constants"
 	"go.uber.org/zap"
 )
 
@@ -106,12 +108,15 @@ func main() {
 		log,
 		*httpPort,
 	)
-	go func() {
-		err := srv.ListenAndServe()
-		if err != nil {
-			panic(err)
-		}
-	}()
+	go srv.ListenAndServe()
+
+	// Start the GRPC server
+	grpcPort := *raftPort + constants.GRPCPortAdd
+	grpcServer := server.InitServer(
+		clientProcess,
+		grpcPort,
+		log,
+	)
 
 	log.Info("Started time machine DB 🐓")
 
@@ -124,6 +129,8 @@ func main() {
 	<-quit
 
 	srv.Shutdown(context.Background())
+	grpcServer.Close()
+
 	log.Info("shutdown completed")
 	log.Sync()
 }

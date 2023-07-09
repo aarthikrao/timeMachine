@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+
+	"github.com/aarthikrao/timeMachine/utils/constants"
 )
 
 func GetGRPCAddress(hostandport string) string {
@@ -15,8 +17,7 @@ func GetGRPCAddress(hostandport string) string {
 
 	port, _ := strconv.Atoi(ss[1])
 
-	// Add 200 to get the grpc port
-	port += 200
+	port += constants.GRPCPortAdd
 
 	return fmt.Sprintf("%s:%d", ss[0], port)
 }

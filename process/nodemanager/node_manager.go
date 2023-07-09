@@ -106,6 +106,7 @@ func (nm *NodeManager) createConnections() error {
 		serverID := string(server.ID)
 		grpcAddress := address.GetGRPCAddress(string(server.Address))
 
+		nm.log.Info("Connecting to GRPC server", zap.Any("id", server.ID), zap.String("address", grpcAddress))
 		if err := nm.connMgr.AddNewConnection(serverID, grpcAddress); err != nil {
 			nm.log.Error("Unable to add connection",
 				zap.String("serverID", serverID),
