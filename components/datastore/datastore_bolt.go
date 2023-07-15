@@ -6,7 +6,6 @@ import (
 	"strconv"
 
 	jm "github.com/aarthikrao/timeMachine/models/jobmodels"
-	rm "github.com/aarthikrao/timeMachine/models/routemodels"
 	bolt "go.etcd.io/bbolt"
 
 	jStore "github.com/aarthikrao/timeMachine/components/jobstore"
@@ -14,9 +13,6 @@ import (
 
 // Compile time validation for jobstore interface
 var _ jStore.JobStoreConn = &boltDataStore{}
-
-// routeCollection will contain the routing info for a DB
-var routeCollection []byte = []byte("routeCollection")
 
 // scheduleCollection will contain all the schedules and will be used to fetch the minute wise jobs
 var scheduleCollection []byte = []byte("scheduleCollection")
@@ -249,76 +245,4 @@ func (bds *boltDataStore) FetchJobForBucket(minute int) ([]*jm.Job, error) {
 	}
 
 	return jobs, nil
-}
-
-func (bds *boltDataStore) GetRoute(routeID string) (*rm.Route, error) {
-	// Start the transaction.
-	tx, err := bds.db.Begin(false)
-	if err != nil {
-		return nil, err
-	}
-	defer tx.Rollback()
-
-	bkt, err := tx.CreateBucketIfNotExists(routeCollection)
-	if err != nil {
-		return nil, err
-	}
-
-	val := bkt.Get([]byte(routeID))
-	if val == nil {
-		return nil, ErrKeyNotFound
-	}
-	var route rm.Route
-	err = rm.GetRouteFromBytes(val, &route)
-	return &route, err
-}
-func (bds *boltDataStore) SetRoute(route *rm.Route) error {
-	// Start the transaction.
-	tx, err := bds.db.Begin(true)
-	if err != nil {
-		return err
-	}
-	defer tx.Rollback()
-
-	bkt, err := tx.CreateBucketIfNotExists(routeCollection)
-	if err != nil {
-		return err
-	}
-
-	by, err := route.ToBytes()
-	if err != nil {
-		return err
-	}
-
-	// Insert the route byte array
-	err = bkt.Put([]byte(route.ID), by)
-	if err != nil {
-		return err
-	}
-
-	// Commit the transaction and check for error.
-	return tx.Commit()
-}
-
-func (bds *boltDataStore) DeleteRoute(route string) error {
-	// Start the transaction.
-	tx, err := bds.db.Begin(true)
-	if err != nil {
-		return err
-	}
-	defer tx.Rollback()
-
-	bkt, err := tx.CreateBucketIfNotExists(routeCollection)
-	if err != nil {
-		return err
-	}
-
-	// Delete the route byte array
-	err = bkt.Delete([]byte(route))
-	if err != nil {
-		return err
-	}
-
-	// Commit the transaction and check for error.
-	return tx.Commit()
 }
