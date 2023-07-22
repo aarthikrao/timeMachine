@@ -15,6 +15,12 @@ const (
 	// Data will contain the JSON snapshot of the DHT map.
 	// As opposed to SlotVsNodeChange, this message means that the nodes are being initialised for the first time
 	InitialiseNodes OperationType = 2
+
+	// Add route information
+	AddRoute OperationType = 3
+
+	// Remove route information
+	RemoveRoute OperationType = 4
 )
 
 // This is a wrapper to propagate the changes to all nodes

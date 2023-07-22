@@ -7,6 +7,8 @@ import (
 	"sync"
 
 	"github.com/aarthikrao/timeMachine/components/dht"
+	"github.com/aarthikrao/timeMachine/components/routestore"
+	rm "github.com/aarthikrao/timeMachine/models/routemodels"
 	"github.com/hashicorp/raft"
 	"go.uber.org/zap"
 )
@@ -15,7 +17,8 @@ import (
 type ConfigFSM struct {
 	lastUpdateTime int
 
-	dht dht.DHT
+	dht    dht.DHT
+	rStore *routestore.RouteStore
 
 	// This function will be called by the config FSM when a change in configuration occurs.
 	// You can use this function to update the node connections etc.
@@ -36,11 +39,13 @@ var (
 
 func NewConfigFSM(
 	dht dht.DHT,
+	rStore *routestore.RouteStore,
 	log *zap.Logger,
 ) *ConfigFSM {
 	return &ConfigFSM{
-		dht: dht,
-		log: log,
+		dht:    dht,
+		rStore: rStore,
+		log:    log,
 	}
 }
 
@@ -117,6 +122,24 @@ func (c *ConfigFSM) handleChange(data []byte) error {
 		}
 
 		c.handleSlotNodeChange(&cs)
+
+	case AddRoute:
+		var route rm.Route
+		err := json.Unmarshal(cmd.Data, &route)
+		if err != nil {
+			return err
+		}
+
+		c.rStore.AddRoute(route.ID, &route)
+
+	case RemoveRoute:
+		var route rm.Route
+		err := json.Unmarshal(cmd.Data, &route)
+		if err != nil {
+			return err
+		}
+
+		c.rStore.RemoveRoute(route.ID)
 	}
 
 	return nil

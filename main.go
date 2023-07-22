@@ -12,6 +12,7 @@ import (
 	"github.com/aarthikrao/timeMachine/components/concensus/fsm"
 	"github.com/aarthikrao/timeMachine/components/dht"
 	"github.com/aarthikrao/timeMachine/components/network/server"
+	"github.com/aarthikrao/timeMachine/components/routestore"
 	"github.com/aarthikrao/timeMachine/process/connectionmanager"
 	dsm "github.com/aarthikrao/timeMachine/process/datastoremanager"
 	"github.com/aarthikrao/timeMachine/process/nodemanager"
@@ -46,6 +47,7 @@ func main() {
 	var (
 		// appDht will store the distributed hash table of this node
 		appDht  dht.DHT                              = dht.Create()
+		rStore  *routestore.RouteStore               = routestore.InitRouteStore()
 		dsmgr   *dsm.DataStoreManager                = dsm.CreateDataStore(boltDataDir, log)
 		connMgr *connectionmanager.ConnectionManager = connectionmanager.CreateConnectionManager(log)
 	)
@@ -53,6 +55,7 @@ func main() {
 	// Initialise the FSM store
 	fsmStore := fsm.NewConfigFSM(
 		appDht,
+		rStore,
 		log,
 	)
 
@@ -85,7 +88,11 @@ func main() {
 	fsmStore.SetChangeHandler(nodeMgr.InitialiseNode)
 
 	// Initialise process
-	clientProcess := client.CreateClientProcess(nodeMgr)
+	clientProcess := client.CreateClientProcess(
+		nodeMgr,
+		rStore,
+		raft,
+	)
 
 	if !*bootstrap {
 		nodeMgr.InitialiseNode()

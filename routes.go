@@ -54,6 +54,15 @@ func InitTimeMachineHttpServer(
 		job.DELETE("/:collection/:jobID", jrh.DeleteJob)
 	}
 
+	// Route Handlers
+	rrh := rest.CreateRouteRestHandler(cp, log)
+	route := r.Group("/route")
+	{
+		route.GET("/:id", rrh.GetRoute)
+		route.POST("/", rrh.SetRoute)
+		route.DELETE("/:id", rrh.DeleteRoute)
+	}
+
 	srv := &http.Server{
 		Addr:    fmt.Sprintf(":%d", port),
 		Handler: r,
