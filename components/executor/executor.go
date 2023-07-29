@@ -19,11 +19,11 @@ type Executor interface {
 	// Internally it is added in a time.After function
 	Run(job jm.Job) error
 
-	// Updates the job details after the job is queued.
-	// If the job is not queued, it will return ErrJobNotFound
-	Update(job jm.Job) error
+	// // Updates the job details after the job is queued.
+	// // If the job is not queued, it will return ErrJobNotFound
+	// Update(job jm.Job) error
 
-	// Deletes the queued job.
-	// If the job is not queued, it will return ErrJobNotFound
-	Delete(jobID string) error
+	// // Deletes the queued job.
+	// // If the job is not queued, it will return ErrJobNotFound
+	// Delete(jobID string) error
 }
