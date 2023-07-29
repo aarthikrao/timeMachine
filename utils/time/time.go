@@ -3,11 +3,11 @@ package time
 import "time"
 
 // GetCurrentMillis returns the milliseconds since epoch
-func GetCurrentMillis() int {
-	return int(time.Now().UnixNano()) / int(time.Millisecond)
+func GetCurrentMillis() int64 {
+	return time.Now().UnixMilli()
 }
 
 // GetCurrentMinutes returns the minutes since epoch
-func GetCurrentMinutes() int {
+func GetCurrentMinutes() int64 {
 	return GetCurrentMillis() / 60000
 }

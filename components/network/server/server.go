@@ -74,7 +74,7 @@ func (s *server) GetJob(ctx context.Context, jd *jobmodels.JobFetchDetails) (*jo
 func (s *server) SetJob(ctx context.Context, jd *jobmodels.JobCreationDetails) (*jobmodels.JobCreationDetails, error) {
 	err := s.cp.SetJob(jd.Collection, &jobmodels.Job{
 		ID:        jd.ID,
-		TriggerMS: int(jd.TriggerTime),
+		TriggerMS: jd.TriggerTime,
 		Meta:      jd.Meta,
 		Route:     jd.Route,
 	})

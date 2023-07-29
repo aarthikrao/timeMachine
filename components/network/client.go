@@ -35,7 +35,7 @@ func (nh *networkHandler) GetJob(collection, jobID string) (*jm.Job, error) {
 	}
 
 	return &jm.Job{
-		TriggerMS: int(resp.TriggerTime),
+		TriggerMS: resp.TriggerTime,
 		ID:        resp.ID,
 		Meta:      resp.Meta,
 		Route:     resp.Route,

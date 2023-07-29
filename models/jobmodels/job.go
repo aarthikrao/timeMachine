@@ -12,7 +12,7 @@ type Job struct {
 	ID string `json:"id,omitempty" bson:"id,omitempty"`
 
 	// Trigger time in milliseconds
-	TriggerMS int             `json:"trigger_ms,omitempty" bson:"trigger_ms,omitempty"`
+	TriggerMS int64           `json:"trigger_ms,omitempty" bson:"trigger_ms,omitempty"`
 	Meta      json.RawMessage `json:"meta,omitempty" bson:"meta,omitempty"`
 	Route     string          `json:"route,omitempty" bson:"route,omitempty"`
 }
@@ -33,9 +33,9 @@ func (j *Job) Valid() error {
 
 func (j *Job) GetMinuteBucketName() []byte {
 	// Get the minutes since epoch
-	jobMinute := j.TriggerMS / 60000
+	var jobMinute int64 = j.TriggerMS / 60000
 
-	return []byte(strconv.Itoa(jobMinute))
+	return []byte(strconv.FormatInt(jobMinute, 10))
 }
 
 // returns collection + "_" + job.ID
