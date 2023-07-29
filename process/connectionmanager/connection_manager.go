@@ -67,11 +67,19 @@ func (cm *ConnectionManager) connect(nodeID dht.NodeID, addr string) error {
 }
 
 // Adds new connection to the connection manager
-func (cm *ConnectionManager) AddNewConnection(nodeID string, address string) error {
+func (cm *ConnectionManager) AddNewConnection(serverID string, address string) error {
 	cm.mu.Lock()
 	defer cm.mu.Unlock()
 
-	return cm.connect(dht.NodeID(nodeID), address)
+	nodeID := dht.NodeID(serverID)
+
+	if _, ok := cm.tmcMap[nodeID]; ok {
+		// This connection already exists
+		return nil
+	}
+
+	// TODO: Add retry mechanism
+	return cm.connect(nodeID, address)
 }
 
 // GetJobStore returns an existing job store client

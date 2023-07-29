@@ -11,9 +11,12 @@ import (
 	"github.com/aarthikrao/timeMachine/components/concensus"
 	"github.com/aarthikrao/timeMachine/components/concensus/fsm"
 	"github.com/aarthikrao/timeMachine/components/dht"
+	"github.com/aarthikrao/timeMachine/components/network/server"
+	"github.com/aarthikrao/timeMachine/components/routestore"
 	"github.com/aarthikrao/timeMachine/process/connectionmanager"
 	dsm "github.com/aarthikrao/timeMachine/process/datastoremanager"
 	"github.com/aarthikrao/timeMachine/process/nodemanager"
+	"github.com/aarthikrao/timeMachine/utils/constants"
 	"go.uber.org/zap"
 )
 
@@ -39,9 +42,22 @@ func main() {
 	raftDataDir := baseDir + "/raft"
 
 	log, _ := zap.NewDevelopment()
+	log = log.With(zap.String("nodeID", *nodeID))
+
+	var (
+		// appDht will store the distributed hash table of this node
+		appDht  dht.DHT                              = dht.Create()
+		rStore  *routestore.RouteStore               = routestore.InitRouteStore()
+		dsmgr   *dsm.DataStoreManager                = dsm.CreateDataStore(boltDataDir, log)
+		connMgr *connectionmanager.ConnectionManager = connectionmanager.CreateConnectionManager(log)
+	)
 
 	// Initialise the FSM store
-	fsmStore := fsm.NewConfigFSM(log)
+	fsmStore := fsm.NewConfigFSM(
+		appDht,
+		rStore,
+		log,
+	)
 
 	// Initialise raft
 	raft, err := concensus.NewRaftConcensus(
@@ -53,47 +69,8 @@ func main() {
 		*bootstrap,
 	)
 	if err != nil {
-		log.Fatal("Unable to start raft", zap.Error(err))
-	}
-
-	var (
-		// appDht will store the distributed hash table of this node
-		appDht  dht.DHT                              = dht.Create()
-		dsmgr   *dsm.DataStoreManager                = dsm.CreateDataStore(boltDataDir, log)
-		connMgr *connectionmanager.ConnectionManager = connectionmanager.CreateConnectionManager(log)
-	)
-
-	if !*bootstrap {
-		nodeVsSlot := fsmStore.GetNodeVsStruct()
-		if len(nodeVsSlot) <= 0 {
-			panic("There are no slots for this node. Did you mean to start this node in bootstrap mode")
-		}
-
-		// Load the hash table information
-		if err := appDht.Load(nodeVsSlot); err != nil {
-			panic(err)
-		}
-
-		slots := nodeVsSlot[dht.NodeID(*nodeID)]
-		if err := dsmgr.InitialiseDataStores(slots); err != nil {
-			panic(err)
-		}
-
-		// Initialse the connection manager
-		addrMap := fsmStore.GetNodeAddressMap()
-
-		// Create connections to other nodes
-		for nodeID, address := range addrMap {
-			connMgr.AddNewConnection(nodeID, address)
-		}
-
-	} else {
-		// This means the node has started in bootstrap mode.
-		// We will need to join the raft group first, and then ask the master to rebalance
-		// The master will then re distribute the slots in a way that causes very minumum
-		// data transafer accross the nodes
-		// We then update the dht so that the traffic is sent to the right data node
-		log.Warn("NodeVsSlot and datastores not yet initialised. Consider rebalancing the cluster once started")
+		log.Fatal("Unable to start raft")
+		panic(err)
 	}
 
 	// Initialise node manager
@@ -102,32 +79,51 @@ func main() {
 		dsmgr,
 		connMgr,
 		appDht,
+		raft,
+		log,
 	)
 
-	// Initialise process
-	clientProcess := client.CreateClientProcess(nodeMgr)
+	// This method will be called by the FSM store if there are any changes.
+	// We will initialise the connections in the nodeMgr with the latest cluster configuration
+	fsmStore.SetChangeHandler(nodeMgr.InitialiseNode)
 
-	srv := InitTimeMachineHttpServer(clientProcess, raft, log, *httpPort)
+	// Initialise process
+	clientProcess := client.CreateClientProcess(
+		nodeMgr,
+		rStore,
+		raft,
+	)
+
+	if !*bootstrap {
+		nodeMgr.InitialiseNode()
+
+	} else {
+		// This means the node has started in bootstrap mode.
+		// If the cluster is being started for the first time, we will have to
+		// 	1. Form a raft group and elect a leader.
+		//  2. Ask the leader to create the inital node vs slot map with leader and follower details.
+		// 		this can be done by calling `Initialise(slotCountperNode int, nodes []string)``
+		// 	3. Communicate with all the nodes in the raft group and apply the DHT in all the nodes.
+		log.Warn("NodeVsSlot and datastores not yet initialised. Consider rebalancing the cluster once started")
+	}
+
+	srv := InitTimeMachineHttpServer(
+		clientProcess,
+		appDht,
+		raft,
+		nodeMgr,
+		log,
+		*httpPort,
+	)
 	go srv.ListenAndServe()
 
-	// Just for testing
-	// go func() {
-	// 	for {
-	// 		if raft.IsLeader() {
-	// 			log.Info("Is leader")
-	// 			val := fsm.NodeConfig{
-	// 				LastContactTime: timeUtils.GetCurrentMillis(),
-	// 			}
-	// 			by, err := json.Marshal(val)
-	// 			if err != nil {
-	// 				log.Error("Unable to marshal", zap.Error(err))
-	// 			}
-	// 			raft.Apply(by)
-	// 		}
-	// 		log.Info("sleep")
-	// 		time.Sleep(1 * time.Second)
-	// 	}
-	// }()
+	// Start the GRPC server
+	grpcPort := *raftPort + constants.GRPCPortAdd
+	grpcServer := server.InitServer(
+		clientProcess,
+		grpcPort,
+		log,
+	)
 
 	log.Info("Started time machine DB 🐓")
 
@@ -140,6 +136,8 @@ func main() {
 	<-quit
 
 	srv.Shutdown(context.Background())
+	grpcServer.Close()
+
 	log.Info("shutdown completed")
 	log.Sync()
 }

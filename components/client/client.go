@@ -2,7 +2,9 @@
 package client
 
 import (
+	"github.com/aarthikrao/timeMachine/components/concensus"
 	"github.com/aarthikrao/timeMachine/components/jobstore"
+	"github.com/aarthikrao/timeMachine/components/routestore"
 	jm "github.com/aarthikrao/timeMachine/models/jobmodels"
 	rm "github.com/aarthikrao/timeMachine/models/routemodels"
 	"github.com/aarthikrao/timeMachine/process/nodemanager"
@@ -10,19 +12,31 @@ import (
 
 type ClientProcess struct {
 	nodeMgr *nodemanager.NodeManager
+
+	rStore *routestore.RouteStore
+
+	cp concensus.Concensus
 }
 
 // compile time validation
 var _ jobstore.JobStore = &ClientProcess{}
 
-func CreateClientProcess(nodeMgr *nodemanager.NodeManager) *ClientProcess {
+func CreateClientProcess(
+	nodeMgr *nodemanager.NodeManager,
+	rStore *routestore.RouteStore,
+	cp concensus.Concensus,
+) *ClientProcess {
 	return &ClientProcess{
 		nodeMgr: nodeMgr,
+		rStore:  rStore,
+		cp:      cp,
 	}
 }
 
+// TODO: Add is leader check for route store.
+
 func (cp *ClientProcess) GetJob(collection, jobID string) (*jm.Job, error) {
-	slot, err := cp.nodeMgr.GetLocation(jobID)
+	slot, err := cp.nodeMgr.GetJobStoreInterface(jobID)
 	if err != nil {
 		return nil, err
 	}
@@ -38,7 +52,7 @@ func (cp *ClientProcess) SetJob(collection string, job *jm.Job) error {
 		return err
 	}
 
-	slot, err := cp.nodeMgr.GetLocation(job.ID)
+	slot, err := cp.nodeMgr.GetJobStoreInterface(job.ID)
 	if err != nil {
 		return err
 	}
@@ -50,7 +64,7 @@ func (cp *ClientProcess) DeleteJob(collection, jobID string) error {
 		return ErrInvalidDetails
 	}
 
-	slot, err := cp.nodeMgr.GetLocation(jobID)
+	slot, err := cp.nodeMgr.GetJobStoreInterface(jobID)
 	if err != nil {
 		return err
 	}
@@ -71,7 +85,12 @@ func (cp *ClientProcess) GetRoute(routeID string) (*rm.Route, error) {
 		return nil, ErrInvalidDetails
 	}
 
-	return nil, nil // TODO: Yet to implement
+	route := cp.rStore.GetRoute(routeID)
+	if route == nil {
+		return nil, ErrRouteNotFound
+	}
+
+	return route, nil
 }
 
 func (cp *ClientProcess) SetRoute(route *rm.Route) error {
@@ -79,8 +98,13 @@ func (cp *ClientProcess) SetRoute(route *rm.Route) error {
 		return err
 	}
 
-	return nil // TODO: Yet to implement
+	by, err := concensus.ConvertAddRoute(route)
+	if err != nil {
+		return err
+	}
 
+	// Update the concensus about the route
+	return cp.cp.Apply(by)
 }
 
 func (cp *ClientProcess) DeleteRoute(routeID string) error {
@@ -88,5 +112,11 @@ func (cp *ClientProcess) DeleteRoute(routeID string) error {
 		return ErrInvalidDetails
 	}
 
-	return nil // TODO: Yet to implement
+	by, err := concensus.ConvertRemoveRoute(routeID)
+	if err != nil {
+		return err
+	}
+
+	// Delete the route from concensus
+	return cp.cp.Apply(by)
 }

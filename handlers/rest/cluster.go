@@ -4,6 +4,9 @@ import (
 	"net/http"
 
 	"github.com/aarthikrao/timeMachine/components/concensus"
+	"github.com/aarthikrao/timeMachine/components/dht"
+	"github.com/aarthikrao/timeMachine/models/config"
+	"github.com/aarthikrao/timeMachine/process/nodemanager"
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 )
@@ -14,14 +17,23 @@ type clusterMessage struct {
 }
 
 type clusterRestHandler struct {
-	cp  concensus.Concensus
-	log *zap.Logger
+	cp      concensus.Concensus
+	appDht  dht.DHT
+	nodeMgr *nodemanager.NodeManager
+	log     *zap.Logger
 }
 
-func CreateClusterRestHandler(cp concensus.Concensus, log *zap.Logger) *clusterRestHandler {
+func CreateClusterRestHandler(
+	cp concensus.Concensus,
+	appDht dht.DHT,
+	nodeMgr *nodemanager.NodeManager,
+	log *zap.Logger,
+) *clusterRestHandler {
 	return &clusterRestHandler{
-		cp:  cp,
-		log: log,
+		cp:      cp,
+		appDht:  appDht,
+		nodeMgr: nodeMgr,
+		log:     log,
 	}
 }
 
@@ -101,4 +113,31 @@ func (crh *clusterRestHandler) Redistribute(c *gin.Context) {
 
 	// TODO: Yet to implement
 
+}
+
+func (crh *clusterRestHandler) Configure(c *gin.Context) {
+	if !crh.cp.IsLeader() {
+		c.AbortWithStatusJSON(http.StatusBadRequest,
+			gin.H{
+				"error":  "not leader",
+				"leader": crh.cp.GetLeaderAddress(),
+			},
+		)
+		return
+	}
+
+	var cf config.Config
+	if err := c.BindJSON(&cf); err != nil {
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+	}
+
+	err := crh.nodeMgr.InitAppDHT(cf.SlotPerNodeCount)
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"status": "ok",
+	})
 }

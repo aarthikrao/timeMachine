@@ -32,6 +32,7 @@ type DataStoreManager struct {
 func CreateDataStore(parentDirectory string, log *zap.Logger) *DataStoreManager {
 	dsm := &DataStoreManager{
 		parentDirectory: parentDirectory,
+		slotsOwned:      make(map[dht.SlotID]js.JobStoreConn),
 		log:             log,
 	}
 
@@ -47,7 +48,7 @@ func (dsm *DataStoreManager) InitialiseDataStores(slots []dht.SlotID) error {
 		}
 
 		dsm.slotsOwned[slot] = datastore
-		dsm.log.Info("initialised node", zap.Int("slot", int(slot)), zap.String("path", path))
+		dsm.log.Info("initialised data store node", zap.Int("slot", int(slot)), zap.String("path", path))
 	}
 
 	return nil

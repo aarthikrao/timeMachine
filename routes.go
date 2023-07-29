@@ -6,7 +6,9 @@ import (
 
 	"github.com/aarthikrao/timeMachine/components/client"
 	"github.com/aarthikrao/timeMachine/components/concensus"
+	"github.com/aarthikrao/timeMachine/components/dht"
 	"github.com/aarthikrao/timeMachine/handlers/rest"
+	"github.com/aarthikrao/timeMachine/process/nodemanager"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
@@ -14,7 +16,9 @@ import (
 
 func InitTimeMachineHttpServer(
 	cp *client.ClientProcess,
+	appDht dht.DHT,
 	con concensus.Concensus,
+	nodeMgr *nodemanager.NodeManager,
 	log *zap.Logger,
 	port int,
 ) *http.Server {
@@ -32,12 +36,13 @@ func InitTimeMachineHttpServer(
 	})
 
 	// Cluster handlers
-	crh := rest.CreateClusterRestHandler(con, log)
+	crh := rest.CreateClusterRestHandler(con, appDht, nodeMgr, log)
 	cluster := r.Group("/cluster")
 	{
 		cluster.GET("", crh.GetStats)
 		cluster.POST("/join", crh.Join)
 		cluster.POST("/remove", crh.Remove)
+		cluster.POST("/configure", crh.Configure)
 	}
 
 	// Job handlers
@@ -47,6 +52,15 @@ func InitTimeMachineHttpServer(
 		job.GET("/:collection/:jobID", jrh.GetJob)
 		job.POST("/:collection", jrh.SetJob)
 		job.DELETE("/:collection/:jobID", jrh.DeleteJob)
+	}
+
+	// Route Handlers
+	rrh := rest.CreateRouteRestHandler(cp, log)
+	route := r.Group("/route")
+	{
+		route.GET("/:id", rrh.GetRoute)
+		route.POST("/", rrh.SetRoute)
+		route.DELETE("/:id", rrh.DeleteRoute)
 	}
 
 	srv := &http.Server{

@@ -3,17 +3,16 @@ package nodemanager
 import (
 	"errors"
 
+	"github.com/aarthikrao/timeMachine/components/concensus"
 	"github.com/aarthikrao/timeMachine/components/dht"
 	js "github.com/aarthikrao/timeMachine/components/jobstore"
 	"github.com/aarthikrao/timeMachine/process/connectionmanager"
 	dsm "github.com/aarthikrao/timeMachine/process/datastoremanager"
+	"github.com/aarthikrao/timeMachine/utils/address"
+	"go.uber.org/zap"
 )
 
 var (
-
-	// If you face this err, it means that the nodeID was not found in
-	ErrInvalidNodeIDSlotIDCombination = errors.New("invalid nodeid and slotid combination")
-
 	// node has not yet been initalised
 	ErrNotYetInitalised = errors.New("not yet initialised")
 )
@@ -26,6 +25,10 @@ type NodeManager struct {
 	connMgr *connectionmanager.ConnectionManager
 
 	dhtMgr dht.DHT
+
+	cp concensus.Concensus
+
+	log *zap.Logger
 }
 
 func CreateNodeManager(
@@ -33,48 +36,110 @@ func CreateNodeManager(
 	dsmgr *dsm.DataStoreManager,
 	connMgr *connectionmanager.ConnectionManager,
 	dhtMgr dht.DHT,
+	cp concensus.Concensus,
+	log *zap.Logger,
 ) *NodeManager {
 	return &NodeManager{
 		selfNodeID: dht.NodeID(selfNodeID),
 		dsmgr:      dsmgr,
 		dhtMgr:     dhtMgr,
 		connMgr:    connMgr,
+		cp:         cp,
+		log:        log,
 	}
+}
+
+// Initialises the app DHT from the server list.
+// It also publishes the slot and node map to other nodes via concensus module
+func (nm *NodeManager) InitAppDHT(slotsPerNode int) error {
+	servers, err := nm.cp.GetConfigurations()
+	if err != nil {
+		return err
+	}
+	var nodes []string
+	for _, server := range servers {
+		serverID := string(server.ID)
+		nodes = append(nodes, serverID)
+	}
+
+	sn, err := dht.Initialise(slotsPerNode, nodes)
+	if err != nil {
+		nm.log.Error("Unable to initialise dht", zap.Error(err))
+		return err
+	}
+
+	by, err := concensus.ConvertConfigSnapshot(sn)
+	if err != nil {
+		return err
+	}
+
+	return nm.cp.Apply(by)
+}
+
+// InitialiseNode will be called once the dht is initialised.
+// It will help setting up the connections and initialise the datastores
+func (nm *NodeManager) InitialiseNode() error {
+	slots := nm.dhtMgr.GetSlotsForNode(nm.selfNodeID)
+	if len(slots) <= 0 {
+		return dht.ErrNotInitialised
+	}
+
+	if err := nm.dsmgr.InitialiseDataStores(slots); err != nil {
+		return err
+	}
+
+	if err := nm.createConnections(); err != nil {
+		return err
+	}
+
+	nm.log.Info("Initialsed node")
+	return nil
+}
+
+func (nm *NodeManager) createConnections() error {
+	servers, err := nm.cp.GetConfigurations()
+	if err != nil {
+		return err
+	}
+
+	for _, server := range servers {
+		serverID := string(server.ID)
+		grpcAddress := address.GetGRPCAddress(string(server.Address))
+
+		nm.log.Info("Connecting to GRPC server", zap.Any("id", server.ID), zap.String("address", grpcAddress))
+		if err := nm.connMgr.AddNewConnection(serverID, grpcAddress); err != nil {
+			nm.log.Error("Unable to add connection",
+				zap.String("serverID", serverID),
+				zap.String("address", grpcAddress),
+				zap.Error(err),
+			)
+		} else {
+			nm.log.Info("Added GRPC connection",
+				zap.String("serverID", serverID),
+				zap.String("addr", grpcAddress))
+		}
+	}
+	return nil
 }
 
 // Returns the location interface of the key. If the node is present on the same node,
 // it returns the db, orelse it returns the connection to the respective server
-func (nm *NodeManager) GetLocation(key string) (js.JobStore, error) {
+func (nm *NodeManager) GetJobStoreInterface(key string) (js.JobStore, error) {
 	if nm.connMgr == nil {
 		return nil, ErrNotYetInitalised
 	}
 
-	nodeVsSlot, err := nm.dhtMgr.GetLocation(key)
+	// We process all requests via leader node.
+	leader, _, err := nm.dhtMgr.GetLocation(key)
 	if err != nil {
 		return nil, err
 	}
 
-	// TODO: This is just a hack. Need to get the right algorithm based on leader and follower details
-	presentInThisNode := false
-	alternativeNodeID := dht.NodeID("")
-	for node, _ := range nodeVsSlot {
-		if node == nm.selfNodeID {
-			presentInThisNode = true
-		} else {
-			alternativeNodeID = node
-		}
+	if leader.NodeID == nm.selfNodeID {
+		// Give the db object
+		return nm.dsmgr.GetDataNode(leader.SlotID)
+	} else {
+		// Give the connection to the node with leader
+		return nm.connMgr.GetJobStore(leader.NodeID)
 	}
-
-	if presentInThisNode {
-		slotNumber, ok := nodeVsSlot[nm.selfNodeID]
-		if ok {
-			return nm.dsmgr.GetDataNode(slotNumber)
-		}
-	}
-
-	if alternativeNodeID != "" {
-		return nm.connMgr.GetJobStore(nm.selfNodeID)
-	}
-
-	return nil, ErrInvalidNodeIDSlotIDCombination
 }
