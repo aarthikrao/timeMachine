@@ -14,7 +14,8 @@ import (
 	"github.com/aarthikrao/timeMachine/models/jobmodels"
 )
 
-func setupTestServer(t *testing.T, jsonData *json.RawMessage, doneFn context.CancelFunc) *http.Server {
+func setupTestServer(t *testing.T, jsonData *json.RawMessage,
+	doneFn context.CancelFunc) *http.Server {
 	var server = http.Server{
 		Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			defer doneFn()
@@ -30,10 +31,11 @@ func setupTestServer(t *testing.T, jsonData *json.RawMessage, doneFn context.Can
 	return &server
 }
 
-func createTestJob() jobmodels.Job {
+func createTestJob(triggerWindowMs int) jobmodels.Job {
 	testJob := jobmodels.Job{Route: "http://localhost:9415/testJob"}
 	randomData := strconv.Itoa(rand.Intn(100000))
 	testJob.Meta = json.RawMessage(randomData)
+	testJob.TriggerMS = time.Now().Add(time.Duration(triggerWindowMs) * time.Millisecond).UnixMilli()
 	return testJob
 }
 
@@ -49,7 +51,7 @@ func TestRunJob(t *testing.T) {
 
 	server := setupTestServer(t, &reqMetaData, doneFn)
 	defer server.Close()
-	testJob := createTestJob()
+	testJob := createTestJob(50)
 	randomMilisec := time.Duration(rand.Intn(50))
 	schduleTime := time.Now().Add(randomMilisec * time.Millisecond)
 	testJob.TriggerMS = schduleTime.UnixMilli()
