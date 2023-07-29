@@ -57,3 +57,12 @@ func TestRunJob(t *testing.T) {
 	}
 
 }
+
+func TestDeleteJob(t *testing.T) {
+	var exe = NewJobExecutor()
+	var job jobmodels.Job
+	err := exe.Delete(job.ID)
+	if err != nil {
+		t.Errorf("error while deleting job: %s", err)
+	}
+}
