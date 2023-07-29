@@ -14,7 +14,7 @@ import (
 	"github.com/aarthikrao/timeMachine/models/jobmodels"
 )
 
-func TestAddJob(t *testing.T) {
+func TestRunJob(t *testing.T) {
 	var exe = NewJobExecutor()
 	err := exe.Run(jobmodels.Job{})
 	if err != nil {
