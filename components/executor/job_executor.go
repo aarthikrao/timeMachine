@@ -41,6 +41,10 @@ func (exe *executor) Run(job jobmodels.Job) error {
 
 }
 
+func (exe *executor) Delete(jobId string) error {
+	return nil
+}
+
 func (exe *executor) makeHttpRequest(job jobmodels.Job) {
 	exe.logger.Debug("request recieved to execute", zap.Any("job", job))
 	_, err := http.Post(job.Route, defaultRequestContentType, bytes.NewReader(job.Meta))

@@ -25,5 +25,5 @@ type Executor interface {
 
 	// // Deletes the queued job.
 	// // If the job is not queued, it will return ErrJobNotFound
-	// Delete(jobID string) error
+	Delete(jobID string) error
 }
