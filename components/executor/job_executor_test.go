@@ -14,24 +14,12 @@ import (
 	"github.com/aarthikrao/timeMachine/models/jobmodels"
 )
 
-func TestRunJob(t *testing.T) {
-	var exe = NewJobExecutor()
-	err := exe.Run(jobmodels.Job{})
-	if err != nil {
-		t.Errorf("error occured while running the job %v", err)
-	}
-
-	testJob := jobmodels.Job{Route: "http://localhost:9415/testJob"}
-	randomMilisec := time.Duration(rand.Intn(5000))
-	randomData := strconv.Itoa(rand.Intn(100000))
-	testJob.Meta = json.RawMessage(randomData)
-
-	var reqMetaData json.RawMessage
-	done, doneFn := context.WithCancel(context.TODO())
+func setupTestServer(t *testing.T, jsonData *json.RawMessage, doneFn context.CancelFunc) *http.Server {
 	var server = http.Server{
 		Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			defer doneFn()
-			reqMetaData, err = io.ReadAll(r.Body)
+			var err error
+			*jsonData, err = io.ReadAll(r.Body)
 			if err != nil {
 				t.Errorf("error while reading request body: %v", err)
 			}
@@ -39,8 +27,30 @@ func TestRunJob(t *testing.T) {
 		Addr: ":9415",
 	}
 	go server.ListenAndServe()
-	defer server.Close()
+	return &server
+}
 
+func createTestJob() jobmodels.Job {
+	testJob := jobmodels.Job{Route: "http://localhost:9415/testJob"}
+	randomData := strconv.Itoa(rand.Intn(100000))
+	testJob.Meta = json.RawMessage(randomData)
+	return testJob
+}
+
+func TestRunJob(t *testing.T) {
+	var exe = NewJobExecutor()
+	err := exe.Run(jobmodels.Job{})
+	if err != nil {
+		t.Errorf("error occured while running the job %v", err)
+	}
+
+	var reqMetaData json.RawMessage
+	done, doneFn := context.WithCancel(context.TODO())
+
+	server := setupTestServer(t, &reqMetaData, doneFn)
+	defer server.Close()
+	testJob := createTestJob()
+	randomMilisec := time.Duration(rand.Intn(50))
 	schduleTime := time.Now().Add(randomMilisec * time.Millisecond)
 	testJob.TriggerMS = schduleTime.UnixMilli()
 
@@ -65,4 +75,5 @@ func TestDeleteJob(t *testing.T) {
 	if err != nil {
 		t.Errorf("error while deleting job: %s", err)
 	}
+
 }
