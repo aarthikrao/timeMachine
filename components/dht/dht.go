@@ -30,5 +30,7 @@ type DHT interface {
 	// Snapshot returns the current node vs slot ids map
 	Snapshot() map[SlotID]*SlotInfo
 
+	GetSlotVsNodes() map[SlotID]*SlotInfo
+
 	IsInitialised() bool
 }

@@ -68,7 +68,7 @@ func (nm *NodeManager) InitAppDHT(slotsPerNode int) error {
 		return err
 	}
 
-	by, err := consensus.ConvertConfigSnapshot(sn.Snapshot())
+	by, err := consensus.ConvertConfigSnapshot(sn.GetSlotVsNodes())
 	if err != nil {
 		return err
 	}
