@@ -33,7 +33,7 @@ const (
 
 var _ Consensus = &raftConsensus{}
 
-type raftconsensus struct {
+type raftConsensus struct {
 	raft *raft.Raft
 }
 
