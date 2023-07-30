@@ -2,7 +2,7 @@ package consensus
 
 import "github.com/hashicorp/raft"
 
-// consensus is responsible for electing a leader, maintaining linearizability
+// Consensus is responsible for electing a leader, maintaining linearizability
 // and maintaining the config and FSM in the cluster.
 type Consensus interface {
 

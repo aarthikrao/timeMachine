@@ -34,7 +34,7 @@
 - [ ] Job executor
     - [ ] Hybrid logical clock
     - [ ] Rest caller
-    - [ ] consensus during publish
+    - [ ] Consensus during publish
 
 ## Phase 2
 TBD
