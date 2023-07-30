@@ -37,7 +37,7 @@ type raftConsensus struct {
 	raft *raft.Raft
 }
 
-func NewRaftconsensus(serverID string, port int, volumeDir string, fsmStore raft.FSM, log *zap.Logger, bootstrap bool) (*raftconsensus, error) {
+func NewRaftconsensus(serverID string, port int, volumeDir string, fsmStore raft.FSM, log *zap.Logger, bootstrap bool) (*raftConsensus, error) {
 	raftConf := raft.DefaultConfig()
 	raftConf.LocalID = raft.ServerID(serverID)
 	raftConf.SnapshotThreshold = 1024
@@ -91,14 +91,14 @@ func NewRaftconsensus(serverID string, port int, volumeDir string, fsmStore raft
 		}
 	}
 
-	return &raftconsensus{
+	return &raftConsensus{
 		raft: raftServer,
 	}, nil
 }
 
 // Join is called to add a new node in the cluster.
 // It returns an error if this node is not a leader
-func (r *raftconsensus) Join(nodeID, raftAddress string) error {
+func (r *raftConsensus) Join(nodeID, raftAddress string) error {
 	if r.raft.State() != raft.Leader {
 		return ErrNotLeader
 	}
@@ -108,7 +108,7 @@ func (r *raftconsensus) Join(nodeID, raftAddress string) error {
 
 // Remove is called to remove a particular node from the cluster.
 // It returns an error if this node is not a leader
-func (r *raftconsensus) Remove(nodeID string) error {
+func (r *raftConsensus) Remove(nodeID string) error {
 	if r.raft.State() != raft.Leader {
 		return ErrNotLeader
 	}
@@ -117,28 +117,28 @@ func (r *raftconsensus) Remove(nodeID string) error {
 }
 
 // Stats returns the stats of raft on this node
-func (r *raftconsensus) Stats() map[string]string {
+func (r *raftConsensus) Stats() map[string]string {
 	return r.raft.Stats()
 }
 
 // Returns true if the current node is leader
-func (r *raftconsensus) IsLeader() bool {
+func (r *raftConsensus) IsLeader() bool {
 	return r.raft.State() == raft.Leader
 }
 
 // Returns address of the leader
-func (r *raftconsensus) GetLeaderAddress() string {
+func (r *raftConsensus) GetLeaderAddress() string {
 	return string(r.raft.Leader())
 }
 
 // Apply is used to apply a command to the FSM
-func (r *raftconsensus) Apply(cmd []byte) error {
+func (r *raftConsensus) Apply(cmd []byte) error {
 	applyResponse := r.raft.Apply(cmd, 500*time.Millisecond)
 	return applyResponse.Error()
 }
 
 // GetConfigurations returns the list of servers in the cluster
-func (r *raftconsensus) GetConfigurations() ([]raft.Server, error) {
+func (r *raftConsensus) GetConfigurations() ([]raft.Server, error) {
 	cf := r.raft.GetConfiguration()
 	if err := cf.Error(); err != nil {
 		return nil, err
