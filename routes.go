@@ -17,7 +17,7 @@ import (
 func InitTimeMachineHttpServer(
 	cp *client.ClientProcess,
 	appDht dht.DHT,
-	con consensus.consensus,
+	con consensus.Consensus,
 	nodeMgr *nodemanager.NodeManager,
 	log *zap.Logger,
 	port int,
