@@ -60,7 +60,7 @@ func main() {
 	)
 
 	// Initialise raft
-	raft, err := consensus.NewRaftconsensus(
+	raft, err := consensus.NewRaftConsensus(
 		*nodeID,
 		*raftPort,
 		raftDataDir,

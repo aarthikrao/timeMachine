@@ -37,7 +37,7 @@ type raftConsensus struct {
 	raft *raft.Raft
 }
 
-func NewRaftconsensus(serverID string, port int, volumeDir string, fsmStore raft.FSM, log *zap.Logger, bootstrap bool) (*raftConsensus, error) {
+func NewRaftConsensus(serverID string, port int, volumeDir string, fsmStore raft.FSM, log *zap.Logger, bootstrap bool) (*raftConsensus, error) {
 	raftConf := raft.DefaultConfig()
 	raftConf.LocalID = raft.ServerID(serverID)
 	raftConf.SnapshotThreshold = 1024
