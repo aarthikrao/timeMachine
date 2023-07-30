@@ -3,7 +3,7 @@ package nodemanager
 import (
 	"errors"
 
-	"github.com/aarthikrao/timeMachine/components/concensus"
+	"github.com/aarthikrao/timeMachine/components/consensus"
 	"github.com/aarthikrao/timeMachine/components/dht"
 	js "github.com/aarthikrao/timeMachine/components/jobstore"
 	"github.com/aarthikrao/timeMachine/process/connectionmanager"
@@ -26,7 +26,7 @@ type NodeManager struct {
 
 	dhtMgr dht.DHT
 
-	cp concensus.Concensus
+	cp consensus.consensus
 
 	log *zap.Logger
 }
@@ -36,7 +36,7 @@ func CreateNodeManager(
 	dsmgr *dsm.DataStoreManager,
 	connMgr *connectionmanager.ConnectionManager,
 	dhtMgr dht.DHT,
-	cp concensus.Concensus,
+	cp consensus.consensus,
 	log *zap.Logger,
 ) *NodeManager {
 	return &NodeManager{
@@ -50,7 +50,7 @@ func CreateNodeManager(
 }
 
 // Initialises the app DHT from the server list.
-// It also publishes the slot and node map to other nodes via concensus module
+// It also publishes the slot and node map to other nodes via consensus module
 func (nm *NodeManager) InitAppDHT(slotsPerNode int) error {
 	servers, err := nm.cp.GetConfigurations()
 	if err != nil {
@@ -68,7 +68,7 @@ func (nm *NodeManager) InitAppDHT(slotsPerNode int) error {
 		return err
 	}
 
-	by, err := concensus.ConvertConfigSnapshot(sn)
+	by, err := consensus.ConvertConfigSnapshot(sn)
 	if err != nil {
 		return err
 	}

@@ -5,7 +5,7 @@ We want to build a scalable, consistent, fault tolerant scheduler that is simple
 * [Redis](redis.io) for its simplicity
 
 ## ⚙️ Design choices
-* Node discovery, Failure detection, Membership management - Raft concensus
+* Node discovery, Failure detection, Membership management - Raft consensus
 * Data replication, Consistency - Partitioned master slave with tunable consistency(defaulting to strong)
 * Load balancing, Data partitioning - Hash slot algorithm.
 

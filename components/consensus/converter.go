@@ -1,9 +1,9 @@
-package concensus
+package consensus
 
 import (
 	"encoding/json"
 
-	"github.com/aarthikrao/timeMachine/components/concensus/fsm"
+	"github.com/aarthikrao/timeMachine/components/consensus/fsm"
 	"github.com/aarthikrao/timeMachine/components/dht"
 	rm "github.com/aarthikrao/timeMachine/models/routemodels"
 )

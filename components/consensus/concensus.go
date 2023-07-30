@@ -1,10 +1,10 @@
-package concensus
+package consensus
 
 import "github.com/hashicorp/raft"
 
-// Concensus is responsible for electing a leader, maintaining linearizability
+// consensus is responsible for electing a leader, maintaining linearizability
 // and maintaining the config and FSM in the cluster.
-type Concensus interface {
+type consensus interface {
 
 	// Join is called to add a new node in the cluster.
 	// It returns an error if this node is not a leader
