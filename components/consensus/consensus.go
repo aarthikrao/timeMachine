@@ -4,7 +4,7 @@ import "github.com/hashicorp/raft"
 
 // consensus is responsible for electing a leader, maintaining linearizability
 // and maintaining the config and FSM in the cluster.
-type consensus interface {
+type Consensus interface {
 
 	// Join is called to add a new node in the cluster.
 	// It returns an error if this node is not a leader

@@ -26,7 +26,7 @@ type NodeManager struct {
 
 	dhtMgr dht.DHT
 
-	cp consensus.consensus
+	cp consensus.Consensus
 
 	log *zap.Logger
 }
@@ -36,7 +36,7 @@ func CreateNodeManager(
 	dsmgr *dsm.DataStoreManager,
 	connMgr *connectionmanager.ConnectionManager,
 	dhtMgr dht.DHT,
-	cp consensus.consensus,
+	cp consensus.Consensus,
 	log *zap.Logger,
 ) *NodeManager {
 	return &NodeManager{
