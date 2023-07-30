@@ -17,14 +17,14 @@ type clusterMessage struct {
 }
 
 type clusterRestHandler struct {
-	cp      consensus.consensus
+	cp      consensus.Consensus
 	appDht  dht.DHT
 	nodeMgr *nodemanager.NodeManager
 	log     *zap.Logger
 }
 
 func CreateClusterRestHandler(
-	cp consensus.consensus,
+	cp consensus.Consensus,
 	appDht dht.DHT,
 	nodeMgr *nodemanager.NodeManager,
 	log *zap.Logger,
