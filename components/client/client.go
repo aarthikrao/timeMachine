@@ -15,7 +15,7 @@ type ClientProcess struct {
 
 	rStore *routestore.RouteStore
 
-	cp consensus.consensus
+	cp consensus.Consensus
 }
 
 // compile time validation
@@ -24,7 +24,7 @@ var _ jobstore.JobStore = &ClientProcess{}
 func CreateClientProcess(
 	nodeMgr *nodemanager.NodeManager,
 	rStore *routestore.RouteStore,
-	cp consensus.consensus,
+	cp consensus.Consensus,
 ) *ClientProcess {
 	return &ClientProcess{
 		nodeMgr: nodeMgr,
