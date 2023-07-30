@@ -33,6 +33,7 @@ type boltDataStore struct {
 	dbFilePath string
 }
 
+// CreateBoltDataStore is used to initialize and return a boltDataStore instance
 func CreateBoltDataStore(path string) (jStore.JobStoreConn, error) {
 	db, err := bolt.Open(path, 0666, nil)
 	if err != nil {
@@ -47,10 +48,12 @@ func CreateBoltDataStore(path string) (jStore.JobStoreConn, error) {
 	}, err
 }
 
+// Close is used to close the database connection
 func (bds *boltDataStore) Close() error {
 	return bds.db.Close()
 }
 
+// GetJob fetches a job from the given collection
 func (bds *boltDataStore) GetJob(collection, jobID string) (*jm.Job, error) {
 	// Start the transaction.
 	tx, err := bds.db.Begin(false)
@@ -73,6 +76,7 @@ func (bds *boltDataStore) GetJob(collection, jobID string) (*jm.Job, error) {
 	return jm.GetJobFromBytes(val)
 }
 
+// SetJob adds a job to the given collection
 func (bds *boltDataStore) SetJob(collection string, job *jm.Job) error {
 	by, err := job.ToBytes()
 	if err != nil {
@@ -130,6 +134,7 @@ func (bds *boltDataStore) SetJob(collection string, job *jm.Job) error {
 	return tx.Commit()
 }
 
+// DeleteJob removes a job from the given collection
 func (bds *boltDataStore) DeleteJob(collection, jobID string) error {
 	// Start the transaction.
 	tx, err := bds.db.Begin(true)
