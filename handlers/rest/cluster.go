@@ -3,7 +3,7 @@ package rest
 import (
 	"net/http"
 
-	"github.com/aarthikrao/timeMachine/components/concensus"
+	"github.com/aarthikrao/timeMachine/components/consensus"
 	"github.com/aarthikrao/timeMachine/components/dht"
 	"github.com/aarthikrao/timeMachine/models/config"
 	"github.com/aarthikrao/timeMachine/process/nodemanager"
@@ -17,14 +17,14 @@ type clusterMessage struct {
 }
 
 type clusterRestHandler struct {
-	cp      concensus.Concensus
+	cp      consensus.Consensus
 	appDht  dht.DHT
 	nodeMgr *nodemanager.NodeManager
 	log     *zap.Logger
 }
 
 func CreateClusterRestHandler(
-	cp concensus.Concensus,
+	cp consensus.Consensus,
 	appDht dht.DHT,
 	nodeMgr *nodemanager.NodeManager,
 	log *zap.Logger,

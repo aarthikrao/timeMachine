@@ -1,4 +1,4 @@
-package concensus
+package consensus
 
 import "errors"
 
