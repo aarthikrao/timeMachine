@@ -1,3 +1,6 @@
+// Implements a Distributed hash table
+// See https://en.wikipedia.org/wiki/Distributed_hash_table
+
 package dht
 
 import (
@@ -27,27 +30,35 @@ type SlotAndNode struct {
 	NodeID NodeID
 }
 
+// dht This struct has been set as an export function because it is a return type
+// for exported function
 type dht struct {
 
 	// maintains the location of all slots slotid vs nodeid
 	slotVsNodes map[SlotID]*SlotInfo
 
 	mu sync.RWMutex
+	// Initialization flag
+	initialised bool
 }
 
 var _ DHT = &dht{}
 
-func Create() *dht {
+func Create() DHT {
 	return &dht{}
 }
 
-// Creates a new distributed hash table from the inputs.
+// Initialise creates a new distributed hash table from the inputs.
 // Should be called only from bootstrap mode or while creating a new cluster
-func Initialise(slotCountperNode int, nodes []string) (map[SlotID]*SlotInfo, error) {
+func Initialise(slotCountperNode int, nodes []string) (DHT, error) {
 
 	d := &dht{
 		slotVsNodes: make(map[SlotID]*SlotInfo),
 	}
+
+	d.mu.Lock()
+	defer d.mu.Unlock()
+
 	// nodeVsSlot contains the mapping of nodeID to slotID.
 	nodeVsSlot := make(map[NodeID][]SlotID)
 
@@ -89,20 +100,32 @@ func Initialise(slotCountperNode int, nodes []string) (map[SlotID]*SlotInfo, err
 			replicaSlotInfo.SlotState = Follower
 		}
 	}
+	d.initialised = true
 
-	by, _ := json.Marshal(d.slotVsNodes) // TODO: Remove
+	by, err := json.Marshal(d.slotVsNodes)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal slot info: %w", err)
+	}
+
 	fmt.Printf("Slot Info: %s\n", string(by))
 
-	return d.slotVsNodes, nil
+	return d, nil
 }
 
-// Loads data from a already existing configuration.
+// Load loads data from a already existing configuration.
 // This must be called only after confirmation from the master
 func (d *dht) Load(slots map[SlotID]*SlotInfo) error {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 
-	d.slotVsNodes = slots // TODO: Verify if this will share memory
+	// Create a new map to avoid memory sharing issues
+	d.slotVsNodes = make(map[SlotID]*SlotInfo)
+	for k, v := range slots {
+		d.slotVsNodes[k] = v
+	}
+
+	d.initialised = true
+
 	return nil
 }
 
@@ -111,12 +134,18 @@ func (d *dht) Snapshot() map[SlotID]*SlotInfo {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 
-	return d.slotVsNodes // TODO: Verify if this will share memory
+	snapshot := make(map[SlotID]*SlotInfo)
+	for k, v := range d.slotVsNodes {
+		snapshot[k] = v
+	}
+
+	return snapshot
 }
 
+// GetSlotsForNode returns all slots for a specific node
 func (d *dht) GetSlotsForNode(nodeID NodeID) []SlotID {
-	d.mu.Lock()
-	defer d.mu.Unlock()
+	d.mu.RLock()
+	defer d.mu.RUnlock()
 
 	var slots []SlotID
 	for slotID, slotInfo := range d.slotVsNodes {
@@ -128,24 +157,53 @@ func (d *dht) GetSlotsForNode(nodeID NodeID) []SlotID {
 	return slots
 }
 
-// Returns the location of the leader and follower slots and their corresponding nodes
+// GetSlotVsNodes get the slotVsNodes from the dht struct
+// A copy is returned here so the caller cannot modify the returned map
+func (d *dht) GetSlotVsNodes() map[SlotID]*SlotInfo {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+
+	slotVsNodesCopy := make(map[SlotID]*SlotInfo)
+
+	for k, v := range d.slotVsNodes {
+		slotVsNodesCopy[k] = &SlotInfo{
+			NodeID:    v.NodeID,
+			SlotState: v.SlotState,
+		}
+	}
+
+	return slotVsNodesCopy
+}
+
+// IsInitialised returns if the hash table has been initialised
+func (d *dht) IsInitialised() bool {
+	return d.initialised
+}
+
+// GetLocation Returns the location of the leader and follower slots and their corresponding nodes
 func (d *dht) GetLocation(key string) (leader *SlotAndNode, follower *SlotAndNode, err error) {
 	d.mu.RLock()
 	defer d.mu.RUnlock()
 
-	if len(d.slotVsNodes) == 0 {
+	if !d.initialised {
 		return nil, nil, ErrNotInitialised
 	}
 
 	slot1 := SlotID(d.hashSlot(key))
-	node1 := d.slotVsNodes[slot1]
+	node1, ok := d.slotVsNodes[slot1]
+	if !ok {
+		return nil, nil, fmt.Errorf("slot %v not found", slot1)
+	}
 	sn1 := &SlotAndNode{
 		SlotID: slot1,
 		NodeID: node1.NodeID,
 	}
 
 	slot2 := d.replicaSlot(slot1)
-	node2 := d.slotVsNodes[slot2]
+	node2, ok := d.slotVsNodes[slot2]
+	if !ok {
+		return nil, nil, fmt.Errorf("slot %v not found", slot2)
+	}
 	sn2 := &SlotAndNode{
 		SlotID: slot2,
 		NodeID: node2.NodeID,
