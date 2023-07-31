@@ -1,2 +1,9 @@
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+
+# Ignore user OS or Editor specific folders
+*.idea
+*.DS_Store
+
+# Ignore application sensitive data
 timeMachine
 data/*
