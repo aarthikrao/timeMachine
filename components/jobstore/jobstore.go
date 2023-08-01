@@ -1,5 +1,5 @@
-// jobstore contains the methods necessary to perform all operations on the DB
-// You can implement `JobStore` for data storage and retrieval over network or disk
+// Package jobstore contains the methods necessary to perform all operations on the DB.
+// You can implement `JobStore` for data storage and retrieval over network or disk.
 package jobstore
 
 import (
@@ -17,10 +17,11 @@ type JobStore interface {
 type JobFetcher interface {
 	JobStore
 
-	// FetchJobTill is used to fetch all the jobs in the datastore till the provided time
+	// FetchJobForBucket is used to fetch all the jobs in the datastore till the provided time
 	FetchJobForBucket(minute int) ([]*jm.Job, error)
 }
 
+// JobStoreConn is a variant of JobStore that encapsulates Close() method
 type JobStoreConn interface {
 	JobStore
 	Close() error
