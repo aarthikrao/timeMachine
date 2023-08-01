@@ -105,7 +105,7 @@ func TestGetSlotsForNode(t *testing.T) {
 	sort.Slice(want, func(i, j int) bool { return want[i] < want[j] })
 
 	// Get the result from the function
-	got := d.GetSlotsForNode(NodeID("node1"))
+	got := d.GetSlotsForNode("node1")
 	sort.Slice(got, func(i, j int) bool { return got[i] < got[j] })
 
 	// Compare the result with your expected result
