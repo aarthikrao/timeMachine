@@ -44,6 +44,7 @@ type dht struct {
 
 var _ DHT = &dht{}
 
+// Create initializes an empty distributed hash table.
 func Create() DHT {
 	return &dht{}
 }
@@ -130,16 +131,21 @@ func (d *dht) Load(slots map[SlotID]*SlotInfo) error {
 }
 
 // Snapshot returns the node vs slot ids map in json format
+// A copy is returned here so the caller cannot modify the returned map
 func (d *dht) Snapshot() map[SlotID]*SlotInfo {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 
-	snapshot := make(map[SlotID]*SlotInfo)
+	slotVsNodesCopy := make(map[SlotID]*SlotInfo)
+
 	for k, v := range d.slotVsNodes {
-		snapshot[k] = v
+		slotVsNodesCopy[k] = &SlotInfo{
+			NodeID:    v.NodeID,
+			SlotState: v.SlotState,
+		}
 	}
 
-	return snapshot
+	return slotVsNodesCopy
 }
 
 // GetSlotsForNode returns all slots for a specific node
@@ -155,24 +161,6 @@ func (d *dht) GetSlotsForNode(nodeID NodeID) []SlotID {
 	}
 
 	return slots
-}
-
-// GetSlotVsNodes get the slotVsNodes from the dht struct
-// A copy is returned here so the caller cannot modify the returned map
-func (d *dht) GetSlotVsNodes() map[SlotID]*SlotInfo {
-	d.mu.Lock()
-	defer d.mu.Unlock()
-
-	slotVsNodesCopy := make(map[SlotID]*SlotInfo)
-
-	for k, v := range d.slotVsNodes {
-		slotVsNodesCopy[k] = &SlotInfo{
-			NodeID:    v.NodeID,
-			SlotState: v.SlotState,
-		}
-	}
-
-	return slotVsNodesCopy
 }
 
 // IsInitialised returns if the hash table has been initialised

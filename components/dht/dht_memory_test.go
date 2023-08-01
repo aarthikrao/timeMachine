@@ -15,7 +15,7 @@ func init() {
 	if err != nil {
 		panic(err)
 	}
-	d.Load(dht.GetSlotVsNodes())
+	d.Load(dht.Snapshot())
 }
 
 func Test_dht_GetLocation(t *testing.T) {
@@ -137,7 +137,7 @@ func TestDHTInitAndLoad(t *testing.T) {
 
 	// Check if new configuration is loaded correctly
 	for slotID, slotInfo := range newSlots {
-		if got := d.GetSlotVsNodes()[slotID]; !reflect.DeepEqual(got, slotInfo) {
+		if got := d.Snapshot()[slotID]; !reflect.DeepEqual(got, slotInfo) {
 			t.Errorf("slotID %v: got %v, want %v", slotID, got, slotInfo)
 		}
 	}
@@ -150,7 +150,7 @@ func TestDHTInitAndLoad(t *testing.T) {
 
 	// Check if initial configuration is loaded correctly
 	for slotID, slotInfo := range initialState {
-		if got := d.GetSlotVsNodes()[slotID]; !reflect.DeepEqual(got, slotInfo) {
+		if got := d.Snapshot()[slotID]; !reflect.DeepEqual(got, slotInfo) {
 			t.Errorf("slotID %v: got %v, want %v", slotID, got, slotInfo)
 		}
 	}
