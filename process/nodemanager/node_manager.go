@@ -124,13 +124,13 @@ func (nm *NodeManager) createConnections() error {
 
 // Returns the location interface of the key. If the node is present on the same node,
 // it returns the db, orelse it returns the connection to the respective server
-func (nm *NodeManager) GetJobStoreInterface(key string) (js.JobStore, error) {
+func (nm *NodeManager) GetJobStoreInterface(key string, leaderPreferred bool) (js.JobStore, error) {
 	if nm.connMgr == nil {
 		return nil, ErrNotYetInitalised
 	}
 
 	// We process all requests via leader node.
-	leader, _, err := nm.dhtMgr.GetLocation(key)
+	leader, follower, err := nm.dhtMgr.GetLocation(key)
 	if err != nil {
 		return nil, err
 	}
@@ -138,8 +138,14 @@ func (nm *NodeManager) GetJobStoreInterface(key string) (js.JobStore, error) {
 	if leader.NodeID == nm.selfNodeID {
 		// Give the db object
 		return nm.dsmgr.GetDataNode(leader.SlotID)
-	} else {
+	}
+
+	// Data not present in this node. Give the connection object to the owner node
+	if leaderPreferred {
 		// Give the connection to the node with leader
 		return nm.connMgr.GetJobStore(leader.NodeID)
+	} else {
+		// Give the connection to the node with follower
+		return nm.connMgr.GetJobStore(follower.NodeID)
 	}
 }
