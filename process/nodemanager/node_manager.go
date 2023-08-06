@@ -123,7 +123,7 @@ func (nm *NodeManager) createConnections() error {
 }
 
 // Returns the location interface of the key. If the node is present on the same node,
-// it returns the db, orelse it returns the connection to the respective server
+// it returns the db, or else it returns the connection to the respective server
 func (nm *NodeManager) GetJobStoreInterface(key string) (js.JobStore, error) {
 	if nm.connMgr == nil {
 		return nil, ErrNotYetInitalised
