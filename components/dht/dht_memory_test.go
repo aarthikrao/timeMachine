@@ -8,9 +8,13 @@ import (
 var d *dht
 
 func init() {
-	d = Create()
+	d = Create() // Create an empty instance
 	slotsVsNodes, err := Initialise(4, []string{"node1", "node2", "node3"})
-	d.Load(slotsVsNodes)
+	if err != nil {
+		panic(err) // data configuration failed
+	}
+
+	err = d.Load(slotsVsNodes) // load data to d
 	if err != nil {
 		panic(err)
 	}

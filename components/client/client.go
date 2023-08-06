@@ -2,7 +2,7 @@
 package client
 
 import (
-	"github.com/aarthikrao/timeMachine/components/concensus"
+	"github.com/aarthikrao/timeMachine/components/consensus"
 	"github.com/aarthikrao/timeMachine/components/jobstore"
 	"github.com/aarthikrao/timeMachine/components/routestore"
 	jm "github.com/aarthikrao/timeMachine/models/jobmodels"
@@ -15,7 +15,7 @@ type ClientProcess struct {
 
 	rStore *routestore.RouteStore
 
-	cp concensus.Concensus
+	cp consensus.Consensus
 }
 
 // compile time validation
@@ -24,7 +24,7 @@ var _ jobstore.JobStore = &ClientProcess{}
 func CreateClientProcess(
 	nodeMgr *nodemanager.NodeManager,
 	rStore *routestore.RouteStore,
-	cp concensus.Concensus,
+	cp consensus.Consensus,
 ) *ClientProcess {
 	return &ClientProcess{
 		nodeMgr: nodeMgr,
@@ -98,12 +98,12 @@ func (cp *ClientProcess) SetRoute(route *rm.Route) error {
 		return err
 	}
 
-	by, err := concensus.ConvertAddRoute(route)
+	by, err := consensus.ConvertAddRoute(route)
 	if err != nil {
 		return err
 	}
 
-	// Update the concensus about the route
+	// Update the consensus about the route
 	return cp.cp.Apply(by)
 }
 
@@ -112,11 +112,11 @@ func (cp *ClientProcess) DeleteRoute(routeID string) error {
 		return ErrInvalidDetails
 	}
 
-	by, err := concensus.ConvertRemoveRoute(routeID)
+	by, err := consensus.ConvertRemoveRoute(routeID)
 	if err != nil {
 		return err
 	}
 
-	// Delete the route from concensus
+	// Delete the route from consensus
 	return cp.cp.Apply(by)
 }

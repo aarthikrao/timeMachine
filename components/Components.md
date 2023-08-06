@@ -6,7 +6,7 @@
 ### [Client process](./client/client.go)
 The client process is responsible for providing abstractions related to clients. The REST and GRPC servers use this to expose data to other nodes and clients.
 
-### [Concensus](./concensus/Concensus.md)
+### [consensus](./consensus/Consensus.md)
 The consensus module is implemented using the RAFT protocol. It is used for handling the configuration requirements of the time machine cluster. We can store and share information such as the DHT structure, route information and other cluster-related information. The RAFT algorithm elects a leader(or a leaseholder) for consensus who will also act as the leader of the time machine cluster.
 
 ### [Distributed hash table](./dht/dht.md)
