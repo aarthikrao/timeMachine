@@ -1,6 +1,6 @@
 module github.com/aarthikrao/timeMachine
 
-go 1.18
+go 1.20
 
 require (
 	github.com/aarthikrao/wal v0.0.3
