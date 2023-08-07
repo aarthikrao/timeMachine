@@ -36,7 +36,7 @@ func CreateClientProcess(
 // TODO: Add is leader check for route store.
 
 func (cp *ClientProcess) GetJob(collection, jobID string) (*jm.Job, error) {
-	slot, err := cp.nodeMgr.GetJobStoreInterface(jobID)
+	slot, err := cp.nodeMgr.GetJobStoreInterface(jobID, true)
 	if err != nil {
 		return nil, err
 	}
@@ -52,7 +52,7 @@ func (cp *ClientProcess) SetJob(collection string, job *jm.Job) error {
 		return err
 	}
 
-	slot, err := cp.nodeMgr.GetJobStoreInterface(job.ID)
+	slot, err := cp.nodeMgr.GetJobStoreInterface(job.ID, true)
 	if err != nil {
 		return err
 	}
@@ -64,7 +64,7 @@ func (cp *ClientProcess) DeleteJob(collection, jobID string) error {
 		return ErrInvalidDetails
 	}
 
-	slot, err := cp.nodeMgr.GetJobStoreInterface(jobID)
+	slot, err := cp.nodeMgr.GetJobStoreInterface(jobID, true)
 	if err != nil {
 		return err
 	}
