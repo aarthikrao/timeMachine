@@ -111,12 +111,20 @@ func (d *dht) Load(slots map[SlotID]*SlotInfo) error {
 	return nil
 }
 
-// Snapshot returns the node vs slot ids map in json format
+// Snapshot returns a copy of d.slotVsNodes.
 func (d *dht) Snapshot() map[SlotID]*SlotInfo {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 
-	return d.slotVsNodes // TODO: Verify if this will share memory
+	// Create a new map to hold the snapshot
+	snapshot := make(map[SlotID]*SlotInfo)
+
+	// Copy the data from d.slotVsNodes to the snapshot map
+	for slotID, slotInfo := range d.slotVsNodes {
+		snapshot[slotID] = slotInfo
+	}
+
+	return snapshot
 }
 
 func (d *dht) GetSlotsForNode(nodeID NodeID) []SlotID {
