@@ -1,13 +1,40 @@
 package wal
 
 import (
+	"encoding/json"
+
+	"github.com/aarthikrao/timeMachine/components/jobstore"
 	"github.com/aarthikrao/wal"
+	"github.com/pkg/errors"
 	"go.uber.org/zap"
+
+	jm "github.com/aarthikrao/timeMachine/models/jobmodels"
 )
 
-type diskWAL struct {
-	w *wal.WriteAheadLog
+// logCommand specifies the type of operation for the wal command
+type logCommand byte
+
+var (
+	SetLog    logCommand = 0x01
+	DeleteLog logCommand = 0x02
+)
+
+// logEntry is the wal log entry
+type logEntry struct {
+	Data       []byte     `json:"data,omitempty"`
+	Collection string     `json:"col,omitempty"`
+	Operation  logCommand `json:"op,omitempty"`
 }
+
+type walMiddleware struct {
+	w *wal.WriteAheadLog
+
+	next jobstore.JobStore
+}
+
+// Compile time interface check
+var _ jobstore.JobStoreConn = &walMiddleware{}
+var _ WALReader = &walMiddleware{}
 
 // InitaliseWriteAheadLog returns a instance of WAL on disk
 func InitaliseWriteAheadLog(
@@ -15,7 +42,8 @@ func InitaliseWriteAheadLog(
 	maxLogSize int64,
 	maxSegments int,
 	log *zap.Logger,
-) (*diskWAL, error) {
+	next jobstore.JobStore,
+) (*walMiddleware, error) {
 	w, err := wal.NewWriteAheadLog(&wal.WALOptions{
 		LogDir:      walDir,
 		MaxLogSize:  maxLogSize,
@@ -26,28 +54,75 @@ func InitaliseWriteAheadLog(
 		return nil, err
 	}
 
-	return &diskWAL{
+	return &walMiddleware{
 		w: w,
 	}, nil
 }
 
-// Write writes the changes to the WAL.
-func (d *diskWAL) Write(change []byte) error {
-	_, err := d.w.Write(change)
-	return err
-}
-
 // Replay calls the function f on all the records from the offset f
-func (d *diskWAL) Replay(offset int64, f func([]byte) error) error {
+func (d *walMiddleware) Replay(offset int64, f func([]byte) error) error {
 	return d.w.Replay(offset, f)
 }
 
 // GetLatestOffset returns the latest offset
-func (d *diskWAL) GetLatestOffset() (int64, error) {
+func (d *walMiddleware) GetLatestOffset() int64 {
 	return d.w.GetOffset()
 }
 
 // Close safely closes the WAL. All the data is persisted in WAL before closing
-func (d *diskWAL) Close() error {
+func (d *walMiddleware) Close() error {
 	return d.w.Close()
+}
+
+func (wm *walMiddleware) GetJob(collection, jobID string) (*jm.Job, error) {
+	// During read operations, we dont write to wal
+	return wm.next.GetJob(collection, jobID)
+}
+
+func (wm *walMiddleware) SetJob(collection string, job *jm.Job) error {
+	by, err := job.ToBytes()
+	if err != nil {
+		errors.Wrap(err, "wal setjob job")
+	}
+
+	le := logEntry{
+		Data:       by,
+		Collection: collection,
+		Operation:  SetLog,
+	}
+
+	if err := wm.makeEntry(le); err != nil {
+		return err
+	}
+
+	return wm.next.SetJob(collection, job)
+}
+
+func (wm *walMiddleware) DeleteJob(collection, jobID string) error {
+	le := logEntry{
+		Data:       []byte(jobID),
+		Collection: collection,
+		Operation:  DeleteLog,
+	}
+
+	if err := wm.makeEntry(le); err != nil {
+		return err
+	}
+
+	return wm.next.DeleteJob(collection, jobID)
+}
+
+func (wm *walMiddleware) makeEntry(le logEntry) error {
+	// TODO: Optimise to msgPack later
+	entry, err := json.Marshal(le)
+	if err != nil {
+		errors.Wrap(err, "wal setjob entry")
+	}
+
+	_, err = wm.w.Write(entry)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
