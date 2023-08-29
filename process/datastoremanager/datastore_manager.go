@@ -63,7 +63,7 @@ func (dsm *DataStoreManager) initialiseVNode(slot dht.SlotID) (js jobstore.JobSt
 	}
 
 	// Initalise the wal and wrap it aroung the datastore
-	walPath := fmt.Sprintf("%s/%d/wal", dsm.parentDirectory, slot) // TODO: finalise
+	walPath := fmt.Sprintf("%s/%d/", dsm.parentDirectory, slot) // TODO: finalise
 	js, err = wal.InitaliseWriteAheadLog(
 		walPath,
 		10e6, // 10MB per file

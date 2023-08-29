@@ -2,6 +2,7 @@ package wal
 
 import (
 	"encoding/json"
+	"time"
 
 	"github.com/aarthikrao/timeMachine/components/jobstore"
 	"github.com/aarthikrao/wal"
@@ -45,17 +46,19 @@ func InitaliseWriteAheadLog(
 	next jobstore.JobStore,
 ) (*walMiddleware, error) {
 	w, err := wal.NewWriteAheadLog(&wal.WALOptions{
-		LogDir:      walDir,
-		MaxLogSize:  maxLogSize,
-		MaxSegments: maxSegments,
-		Log:         log,
+		LogDir:            walDir,
+		MaxLogSize:        maxLogSize,
+		MaxSegments:       maxSegments,
+		Log:               log,
+		MaxWaitBeforeSync: 1 * time.Second, // TODO: change this variable to default
 	})
 	if err != nil {
 		return nil, err
 	}
 
 	return &walMiddleware{
-		w: w,
+		w:    w,
+		next: next, // the next interface to call
 	}, nil
 }
 

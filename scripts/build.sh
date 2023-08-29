@@ -4,6 +4,9 @@
 protoc --go_out=. --go_opt=paths=source_relative --go-grpc_out=. --go-grpc_opt=paths=source_relative  models/jobmodels/job.proto
 protoc --go_out=. --go_opt=paths=source_relative --go-grpc_out=. --go-grpc_opt=paths=source_relative  components/network/network.proto
 
+# Get all go modules
+go mod tidy
+
 # Run the testcases
 go test ./...
 
