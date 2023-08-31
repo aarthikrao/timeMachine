@@ -5,9 +5,11 @@ import (
 	"fmt"
 	"sync"
 
-	ds "github.com/aarthikrao/timeMachine/components/datastore"
+	"github.com/aarthikrao/timeMachine/components/datastore"
 	"github.com/aarthikrao/timeMachine/components/dht"
+	"github.com/aarthikrao/timeMachine/components/jobstore"
 	js "github.com/aarthikrao/timeMachine/components/jobstore"
+	"github.com/aarthikrao/timeMachine/components/wal"
 	"go.uber.org/zap"
 )
 
@@ -41,17 +43,43 @@ func CreateDataStore(parentDirectory string, log *zap.Logger) *DataStoreManager 
 
 func (dsm *DataStoreManager) InitialiseDataStores(slots []dht.SlotID) error {
 	for _, slot := range slots {
-		path := fmt.Sprintf("%s/%d.db", dsm.parentDirectory, slot)
-		datastore, err := ds.CreateBoltDataStore(path)
+		ds, err := dsm.initialiseVNode(slot)
 		if err != nil {
 			return err
 		}
 
-		dsm.slotsOwned[slot] = datastore
-		dsm.log.Info("initialised data store node", zap.Int("slot", int(slot)), zap.String("path", path))
+		dsm.slotsOwned[slot] = ds
 	}
 
 	return nil
+}
+
+func (dsm *DataStoreManager) initialiseVNode(slot dht.SlotID) (js jobstore.JobStoreConn, err error) {
+	// Initialise the datastore
+	path := fmt.Sprintf("%s/%d.db", dsm.parentDirectory, slot)
+	ds, err := datastore.CreateBoltDataStore(path)
+	if err != nil {
+		return nil, err
+	}
+
+	// Initalise the wal and wrap it aroung the datastore
+	walPath := fmt.Sprintf("%s/%d/", dsm.parentDirectory, slot) // TODO: finalise
+	js, err = wal.InitaliseWriteAheadLog(
+		walPath,
+		10e6, // 10MB per file
+		5,    // 5 files // TODOD: Move to config
+		dsm.log,
+		ds,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	dsm.log.Info("initialised data store node",
+		zap.Int("slot", int(slot)),
+		zap.String("path", path),
+	)
+	return js, nil
 }
 
 func (dsm *DataStoreManager) GetDataNode(slotID dht.SlotID) (js.JobStore, error) {
