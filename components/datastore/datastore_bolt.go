@@ -8,6 +8,7 @@ import (
 	jm "github.com/aarthikrao/timeMachine/models/jobmodels"
 	bolt "go.etcd.io/bbolt"
 
+	"github.com/aarthikrao/timeMachine/components/jobstore"
 	jStore "github.com/aarthikrao/timeMachine/components/jobstore"
 )
 
@@ -188,6 +189,10 @@ func (bds *boltDataStore) DeleteJob(collection, jobID string) error {
 
 	// Commit the transaction and check for error.
 	return tx.Commit()
+}
+
+func (bds *boltDataStore) Type() jobstore.JobStoreType {
+	return jobstore.Database
 }
 
 // FetchJobForBucket is used to fetch all the jobs in the datastore till the provided time

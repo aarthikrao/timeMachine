@@ -92,6 +92,7 @@ func main() {
 		nodeMgr,
 		rStore,
 		raft,
+		log,
 	)
 
 	if !*bootstrap {

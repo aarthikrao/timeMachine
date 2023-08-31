@@ -63,3 +63,7 @@ func (nh *networkHandler) DeleteJob(collection, jobID string) error {
 
 	return err
 }
+
+func (nh *networkHandler) Type() jobstore.JobStoreType {
+	return jobstore.Network
+}
