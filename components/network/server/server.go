@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"net"
 
-	"github.com/aarthikrao/timeMachine/components/client"
 	"github.com/aarthikrao/timeMachine/components/network"
 	jobmodels "github.com/aarthikrao/timeMachine/models/jobmodels"
+	"github.com/aarthikrao/timeMachine/process/client"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 )

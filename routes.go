@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/aarthikrao/timeMachine/components/client"
 	"github.com/aarthikrao/timeMachine/components/consensus"
 	"github.com/aarthikrao/timeMachine/components/dht"
 	"github.com/aarthikrao/timeMachine/handlers/rest"
+	"github.com/aarthikrao/timeMachine/process/client"
 	"github.com/aarthikrao/timeMachine/process/nodemanager"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
