@@ -25,7 +25,7 @@ type timeMachineConnection struct {
 	grpcConn *grpc.ClientConn
 
 	// All the clients
-	jobStore js.JobStore
+	jobStore js.JobStoreWithReplicator
 }
 
 type ConnectionManager struct {
@@ -83,7 +83,7 @@ func (cm *ConnectionManager) AddNewConnection(serverID string, address string) e
 }
 
 // GetJobStore returns an existing job store client
-func (cm *ConnectionManager) GetJobStore(nodeID dht.NodeID) (js.JobStore, error) {
+func (cm *ConnectionManager) GetJobStore(nodeID dht.NodeID) (js.JobStoreWithReplicator, error) {
 	cm.mu.RLock()
 	defer cm.mu.RUnlock()
 

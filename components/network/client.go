@@ -15,7 +15,7 @@ type networkHandler struct {
 }
 
 // Compile time interface validation
-var _ jobstore.JobStore = &networkHandler{}
+var _ jobstore.JobStoreWithReplicator = &networkHandler{}
 
 func CreateJobStoreClient(conn *grpc.ClientConn) *networkHandler {
 	return &networkHandler{
@@ -66,4 +66,25 @@ func (nh *networkHandler) DeleteJob(collection, jobID string) error {
 
 func (nh *networkHandler) Type() jobstore.JobStoreType {
 	return jobstore.Network
+}
+
+func (nh *networkHandler) ReplicateSetJob(collection string, job *jm.Job) error {
+	_, err := nh.client.ReplicateSetJob(context.Background(), &jm.JobCreationDetails{
+		TriggerTime: int64(job.TriggerMS),
+		ID:          job.ID,
+		Meta:        job.Meta,
+		Route:       job.Route,
+		Collection:  collection,
+	})
+
+	return err
+}
+
+func (nh *networkHandler) ReplicateDeleteJob(collection, jobID string) error {
+	_, err := nh.client.DeleteJob(context.Background(), &jm.JobFetchDetails{
+		Collection: collection,
+		ID:         jobID,
+	})
+
+	return err
 }

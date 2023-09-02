@@ -15,6 +15,12 @@ import (
 var (
 	// node has not yet been initalised
 	ErrNotYetInitalised = errors.New("not yet initialised")
+
+	// The jobstore corresponding to the key you are looking for does not exist on this node
+	ErrNotSlotOwner = errors.New("not slot owner")
+
+	// This means that this node is the owner of the slot and you are trying to access the remote connection to it
+	ErrLocalSlotOwner = errors.New("local slot owner")
 )
 
 type NodeManager struct {
@@ -122,9 +128,32 @@ func (nm *NodeManager) createConnections() error {
 	return nil
 }
 
-// Returns the location interface of the key. If the node is present on the same node,
-// it returns the db, or else it returns the connection to the respective server
-func (nm *NodeManager) GetJobStoreInterface(key string, leaderRequired bool) (js.JobStore, error) {
+func (nm *NodeManager) IsSlotOwner(key string, leaderRequired bool) (bool, error) {
+	if nm.connMgr == nil {
+		return false, ErrNotYetInitalised
+	}
+
+	leader, follower, err := nm.dhtMgr.GetLocation(key)
+	if err != nil {
+		return false, err
+	}
+
+	if leaderRequired {
+		if leader.NodeID == nm.selfNodeID {
+			return true, nil
+		}
+
+	} else {
+		if follower.NodeID == nm.selfNodeID {
+			return true, nil
+		}
+
+	}
+
+	return false, nil
+}
+
+func (nm *NodeManager) GetLocalSlot(key string, leaderRequired bool) (js.JobStore, error) {
 	if nm.connMgr == nil {
 		return nil, ErrNotYetInitalised
 	}
@@ -140,13 +169,39 @@ func (nm *NodeManager) GetJobStoreInterface(key string, leaderRequired bool) (js
 			return nm.dsmgr.GetDataNode(leader.SlotID)
 		}
 
-		// Give the connection to the node with leader
-		return nm.connMgr.GetJobStore(leader.NodeID)
-
 	} else { // Return the follower datasource
 		if follower.NodeID == nm.selfNodeID {
 			// Give the db object
 			return nm.dsmgr.GetDataNode(follower.SlotID)
+		}
+	}
+
+	return nil, ErrNotSlotOwner
+}
+
+func (nm *NodeManager) GetRemoteSlot(key string, leaderRequired bool) (js.JobStoreWithReplicator, error) {
+	if nm.connMgr == nil {
+		return nil, ErrNotYetInitalised
+	}
+
+	leader, follower, err := nm.dhtMgr.GetLocation(key)
+	if err != nil {
+		return nil, err
+	}
+
+	if leaderRequired {
+		// Check if the job exists locally
+		if leader.NodeID == nm.selfNodeID {
+			return nil, ErrLocalSlotOwner
+		}
+
+		// Give the connection to the node with leader
+		return nm.connMgr.GetJobStore(leader.NodeID)
+
+	} else {
+		// Check if the job exists locally
+		if follower.NodeID == nm.selfNodeID {
+			return nil, ErrLocalSlotOwner
 		}
 
 		// Give the connection to the node with follower

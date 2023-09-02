@@ -38,3 +38,12 @@ type JobStoreConn interface {
 	JobStore
 	Close() error
 }
+
+// JobStoreWithReplicator adds replicate methods on top of JobStore interface
+// This will be used for updating the ow
+type JobStoreWithReplicator interface {
+	JobStore
+
+	ReplicateSetJob(collection string, job *jm.Job) error
+	ReplicateDeleteJob(collection, jobID string) error
+}

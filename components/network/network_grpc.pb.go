@@ -20,9 +20,11 @@ import (
 const _ = grpc.SupportPackageIsVersion7
 
 const (
-	JobStore_GetJob_FullMethodName    = "/network.JobStore/GetJob"
-	JobStore_SetJob_FullMethodName    = "/network.JobStore/SetJob"
-	JobStore_DeleteJob_FullMethodName = "/network.JobStore/DeleteJob"
+	JobStore_GetJob_FullMethodName             = "/network.JobStore/GetJob"
+	JobStore_SetJob_FullMethodName             = "/network.JobStore/SetJob"
+	JobStore_DeleteJob_FullMethodName          = "/network.JobStore/DeleteJob"
+	JobStore_ReplicateSetJob_FullMethodName    = "/network.JobStore/ReplicateSetJob"
+	JobStore_ReplicateDeleteJob_FullMethodName = "/network.JobStore/ReplicateDeleteJob"
 )
 
 // JobStoreClient is the client API for JobStore service.
@@ -35,6 +37,10 @@ type JobStoreClient interface {
 	SetJob(ctx context.Context, in *jobmodels.JobCreationDetails, opts ...grpc.CallOption) (*jobmodels.JobCreationDetails, error)
 	// DeleteJob will remove the job from time machine instance
 	DeleteJob(ctx context.Context, in *jobmodels.JobFetchDetails, opts ...grpc.CallOption) (*jobmodels.Empty, error)
+	// ReplicateSetJob is the same as SetJob. It is called only by the leader to replicate the job on the follower
+	ReplicateSetJob(ctx context.Context, in *jobmodels.JobCreationDetails, opts ...grpc.CallOption) (*jobmodels.JobCreationDetails, error)
+	// ReplicateDeleteJob is the same as DeleteJobJob. It is called only by the leader to replicate the job on the follower
+	ReplicateDeleteJob(ctx context.Context, in *jobmodels.JobFetchDetails, opts ...grpc.CallOption) (*jobmodels.Empty, error)
 }
 
 type jobStoreClient struct {
@@ -72,6 +78,24 @@ func (c *jobStoreClient) DeleteJob(ctx context.Context, in *jobmodels.JobFetchDe
 	return out, nil
 }
 
+func (c *jobStoreClient) ReplicateSetJob(ctx context.Context, in *jobmodels.JobCreationDetails, opts ...grpc.CallOption) (*jobmodels.JobCreationDetails, error) {
+	out := new(jobmodels.JobCreationDetails)
+	err := c.cc.Invoke(ctx, JobStore_ReplicateSetJob_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *jobStoreClient) ReplicateDeleteJob(ctx context.Context, in *jobmodels.JobFetchDetails, opts ...grpc.CallOption) (*jobmodels.Empty, error) {
+	out := new(jobmodels.Empty)
+	err := c.cc.Invoke(ctx, JobStore_ReplicateDeleteJob_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // JobStoreServer is the server API for JobStore service.
 // All implementations must embed UnimplementedJobStoreServer
 // for forward compatibility
@@ -82,6 +106,10 @@ type JobStoreServer interface {
 	SetJob(context.Context, *jobmodels.JobCreationDetails) (*jobmodels.JobCreationDetails, error)
 	// DeleteJob will remove the job from time machine instance
 	DeleteJob(context.Context, *jobmodels.JobFetchDetails) (*jobmodels.Empty, error)
+	// ReplicateSetJob is the same as SetJob. It is called only by the leader to replicate the job on the follower
+	ReplicateSetJob(context.Context, *jobmodels.JobCreationDetails) (*jobmodels.JobCreationDetails, error)
+	// ReplicateDeleteJob is the same as DeleteJobJob. It is called only by the leader to replicate the job on the follower
+	ReplicateDeleteJob(context.Context, *jobmodels.JobFetchDetails) (*jobmodels.Empty, error)
 	mustEmbedUnimplementedJobStoreServer()
 }
 
@@ -97,6 +125,12 @@ func (UnimplementedJobStoreServer) SetJob(context.Context, *jobmodels.JobCreatio
 }
 func (UnimplementedJobStoreServer) DeleteJob(context.Context, *jobmodels.JobFetchDetails) (*jobmodels.Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method DeleteJob not implemented")
+}
+func (UnimplementedJobStoreServer) ReplicateSetJob(context.Context, *jobmodels.JobCreationDetails) (*jobmodels.JobCreationDetails, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ReplicateSetJob not implemented")
+}
+func (UnimplementedJobStoreServer) ReplicateDeleteJob(context.Context, *jobmodels.JobFetchDetails) (*jobmodels.Empty, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ReplicateDeleteJob not implemented")
 }
 func (UnimplementedJobStoreServer) mustEmbedUnimplementedJobStoreServer() {}
 
@@ -165,6 +199,42 @@ func _JobStore_DeleteJob_Handler(srv interface{}, ctx context.Context, dec func(
 	return interceptor(ctx, in, info, handler)
 }
 
+func _JobStore_ReplicateSetJob_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(jobmodels.JobCreationDetails)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(JobStoreServer).ReplicateSetJob(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: JobStore_ReplicateSetJob_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(JobStoreServer).ReplicateSetJob(ctx, req.(*jobmodels.JobCreationDetails))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _JobStore_ReplicateDeleteJob_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(jobmodels.JobFetchDetails)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(JobStoreServer).ReplicateDeleteJob(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: JobStore_ReplicateDeleteJob_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(JobStoreServer).ReplicateDeleteJob(ctx, req.(*jobmodels.JobFetchDetails))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // JobStore_ServiceDesc is the grpc.ServiceDesc for JobStore service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -183,6 +253,14 @@ var JobStore_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "DeleteJob",
 			Handler:    _JobStore_DeleteJob_Handler,
+		},
+		{
+			MethodName: "ReplicateSetJob",
+			Handler:    _JobStore_ReplicateSetJob_Handler,
+		},
+		{
+			MethodName: "ReplicateDeleteJob",
+			Handler:    _JobStore_ReplicateDeleteJob_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
