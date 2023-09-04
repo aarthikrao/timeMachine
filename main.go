@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/aarthikrao/timeMachine/components/consensus"
 	"github.com/aarthikrao/timeMachine/components/consensus/fsm"
@@ -49,7 +50,7 @@ func main() {
 		appDht  dht.DHT                              = dht.Create()
 		rStore  *routestore.RouteStore               = routestore.InitRouteStore()
 		dsmgr   *dsm.DataStoreManager                = dsm.CreateDataStore(boltDataDir, log)
-		connMgr *connectionmanager.ConnectionManager = connectionmanager.CreateConnectionManager(log)
+		connMgr *connectionmanager.ConnectionManager = connectionmanager.CreateConnectionManager(log, 500*time.Millisecond) // TODO: Add to config
 	)
 
 	// Initialise the FSM store

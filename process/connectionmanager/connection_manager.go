@@ -2,6 +2,7 @@ package connectionmanager
 
 import (
 	"sync"
+	"time"
 
 	"github.com/aarthikrao/timeMachine/components/dht"
 	js "github.com/aarthikrao/timeMachine/components/jobstore"
@@ -34,16 +35,19 @@ type ConnectionManager struct {
 	tmcMap map[dht.NodeID]*timeMachineConnection
 	mu     sync.RWMutex
 
+	rpcTimeout time.Duration
+
 	log *zap.Logger
 }
 
 // CreateConnectionManager returns the connection manager
 // It does not initialise the connections. This will have to be done
 // by using the AddNewConnection
-func CreateConnectionManager(log *zap.Logger) *ConnectionManager {
+func CreateConnectionManager(log *zap.Logger, rpcTimeout time.Duration) *ConnectionManager {
 	return &ConnectionManager{
-		log:    log,
-		tmcMap: make(map[dht.NodeID]*timeMachineConnection),
+		log:        log,
+		tmcMap:     make(map[dht.NodeID]*timeMachineConnection),
+		rpcTimeout: rpcTimeout,
 	}
 }
 
@@ -60,7 +64,7 @@ func (cm *ConnectionManager) connect(nodeID dht.NodeID, addr string) error {
 	cm.tmcMap[nodeID] = &timeMachineConnection{
 		address:  addr,
 		grpcConn: conn,
-		jobStore: network.CreateJobStoreClient(conn),
+		jobStore: network.CreateJobStoreClient(conn, cm.rpcTimeout),
 	}
 
 	return nil
