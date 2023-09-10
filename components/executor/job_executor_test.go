@@ -54,7 +54,7 @@ func TestRunJob(t *testing.T) {
 	server := setupTestServer(t, &reqMetaData, doneFn)
 	defer server.Close()
 	exe.SetClient(server.Client())
-	testJob := createTestJob(50, server.Listener)
+	testJob := createTestJob(500, server.Listener)
 
 	err = exe.Run(testJob)
 
@@ -82,7 +82,7 @@ func TestDeleteJob(t *testing.T) {
 	server := setupTestServer(t, &jsonData, doneFn)
 	defer server.Close()
 	exe.SetClient(server.Client())
-	jobTriggerWindow := 100
+	jobTriggerWindow := 200
 	job = createTestJob(jobTriggerWindow, server.Listener)
 	job.ID = strconv.Itoa(rand.Intn(10))
 	err = exe.Run(job)
@@ -105,11 +105,11 @@ func TestDeleteJob(t *testing.T) {
 }
 
 func TestUpdatePostponedJob(t *testing.T) {
-	testUpdateJob(t, 50, 100)
+	testUpdateJob(t, 150, 1000)
 }
 
 func TestUpdatePrePonedJob(t *testing.T) {
-	testUpdateJob(t, 100, 50)
+	testUpdateJob(t, 1000, 500)
 }
 
 func testUpdateJob(t *testing.T, oldJobTriggerWindow, newJobTriggerWindow int) {

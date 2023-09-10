@@ -3,8 +3,10 @@ package executor
 import (
 	"bytes"
 	"container/list"
+	"context"
 	"log"
 	"net/http"
+	"sync"
 	"time"
 
 	"github.com/aarthikrao/timeMachine/models/jobmodels"
@@ -13,26 +15,30 @@ import (
 
 const defaultRequestContentType = "application/json"
 
-const (
-	addJob opCode = iota + 1
-	removeJob
-	updateJob
-)
+const defaultBatchDuration = 2 * time.Minute
 
-type opCode int8
+// defaultSlotDuration describe the default granurality of job dispatcher, e.g. 100ms means we would dispatch all the jobs in next 100 ms at once.
+const defaultSlotDuration = 100 * time.Millisecond
 
 type executor struct {
-	logger           *zap.Logger
-	client           *http.Client
-	jobRegister      map[string]*jobmodels.Job
-	schdulerRegister map[int64]*list.List
-	jobOpCh          chan jobOp
+	logger *zap.Logger
+
+	client *http.Client
+
+	opRegister sync.Map
+
+	cancelFn context.CancelFunc
+	jobBatch *jobBatch
+}
+
+type jobVersion struct {
+	id  string
+	ver int8
 }
 
 type jobOp struct {
-	job       *jobmodels.Job
-	operation opCode
-	id        string
+	job *jobmodels.Job
+	ver int8
 }
 
 func NewJobExecutor() Executor {
@@ -40,13 +46,16 @@ func NewJobExecutor() Executor {
 	if err != nil {
 		log.Fatal("unable to get executor", zap.Error(err))
 	}
+	ctx, cancelFn := context.WithCancel(context.TODO())
+
 	exe := &executor{
-		logger:           devLogger,
-		jobRegister:      make(map[string]*jobmodels.Job),
-		schdulerRegister: make(map[int64]*list.List),
-		jobOpCh:          make(chan jobOp),
+		logger:   devLogger,
+		client:   http.DefaultClient,
+		cancelFn: cancelFn,
+		jobBatch: NewJobBatch(defaultBatchDuration, defaultSlotDuration),
 	}
-	go exe.startOperator()
+
+	go exe.startCounter(ctx)
 	return exe
 }
 
@@ -59,7 +68,9 @@ func (exe *executor) Run(job jobmodels.Job) error {
 		exe.logger.Debug("return: no route")
 		return ErrToRoute
 	}
-	exe.jobOpCh <- jobOp{job: &job, operation: addJob, id: job.ID}
+	jop := &jobOp{job: &job}
+	exe.addJob(jop)
+
 	return nil
 }
 
@@ -68,7 +79,8 @@ func (exe *executor) Delete(jobId string) error {
 		exe.logger.Debug("return: no job id")
 		return ErrNoJobId
 	}
-	exe.jobOpCh <- jobOp{operation: removeJob, id: jobId}
+
+	exe.opRegister.Delete(jobId)
 	return nil
 }
 
@@ -77,37 +89,81 @@ func (exe *executor) Update(jobId string, newJob jobmodels.Job) error {
 		exe.logger.Debug("return: no route")
 		return ErrToRoute
 	}
-	exe.jobOpCh <- jobOp{job: &newJob, operation: updateJob, id: jobId}
+	ijobOp, ok := exe.opRegister.Load(newJob.ID)
+	if !ok {
+		exe.logger.Debug("return: job not found")
+		return ErrJobNotFound
+	}
+
+	jop, ok := ijobOp.(*jobOp)
+	if !ok {
+		return nil
+	}
+	latestJop := &jobOp{job: &newJob, ver: jop.ver}
+	exe.addJob(latestJop)
 	return nil
 }
 
-func (exe *executor) startOperator() {
-	for op := range exe.jobOpCh {
-		switch op.operation {
-		case addJob:
-			exe.jobRegister[op.id] = op.job
-			scheduleTime := time.UnixMilli(op.job.TriggerMS)
-			milisecDiff := time.UnixMilli(op.job.TriggerMS).Sub(time.Now()).Milliseconds()
-			exe.addJob(op.id, milisecDiff)
-		case removeJob:
-			delete(exe.jobRegister, op.id)
-		case updateJob:
-			exe.jobRegister[op.id] = op.job
+func (exe *executor) addJob(jop *jobOp) {
+	jop.ver++
+	err := exe.jobBatch.add(&jobVersion{jop.job.ID, jop.ver}, jop.job.TriggerMS)
+	if err != nil {
+		exe.logger.Debug("err while adding the job", zap.Error(err))
+	}
+	exe.opRegister.Store(jop.job.ID, jop)
+
+}
+
+func (exe *executor) dispatchBatch(batch *list.List) error {
+	for batch.Len() > 0 {
+		ele := batch.Front()
+		if ele == nil {
+			return nil
+		}
+		batch.Remove(ele)
+		jobVer, ok := ele.Value.(*jobVersion)
+		if !ok {
+			continue
+		}
+		id := jobVer.id
+		ijob, ok := exe.opRegister.LoadAndDelete(id) // Latest job version
+		if !ok {
+			exe.logger.Debug("job found to be deleted", zap.String("jobId", id))
+			continue
+		}
+		jop, ok := ijob.(*jobOp)
+		if !ok {
+			continue
+		}
+		if jop.ver != jobVer.ver {
+			exe.logger.Debug("found stale version", zap.String("id", jobVer.id), zap.Int8("ver", jobVer.ver))
+			continue
+		}
+		// Runnable job
+		exe.makeHttpRequest(jop.job)
+	}
+	return nil
+}
+
+func (exe *executor) startCounter(ctx context.Context) {
+	ticker := time.NewTicker(defaultSlotDuration)
+	defer ticker.Stop()
+	for {
+		select {
+		case <-ctx.Done():
+			return // Close dispatcher
+		case curTime := <-ticker.C:
+			exe.jobBatch.iterateBatch(curTime, exe.dispatchBatch)
 		}
 	}
 }
 
-func (exe *executor) addJob(jobId string, milisecDiff int64) {
-	jobList, ok := exe.schdulerRegister[milisecDiff]
-	if !ok {
-		jobList = list.New()
-		exe.schdulerRegister[milisecDiff] = jobList
-	}
-	jobList.PushBack(jobId)
-
+// Stop, stops the dispatcher
+func (exe *executor) Stop() {
+	exe.cancelFn()
 }
 
-func (exe *executor) makeHttpRequest(job jobmodels.Job) {
+func (exe *executor) makeHttpRequest(job *jobmodels.Job) {
 	exe.logger.Debug("request recieved to execute", zap.Any("job", job))
 
 	_, err := exe.client.Post(job.Route, defaultRequestContentType, bytes.NewReader(job.Meta))

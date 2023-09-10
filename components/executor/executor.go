@@ -13,6 +13,7 @@ var (
 	ErrTooEarly    = errors.New("too early")
 	ErrToLate      = errors.New("too late")
 	ErrToRoute     = errors.New("no route")
+	ErrNoSlot      = errors.New("no slot")
 )
 
 // Executor queues the jobs and runs them one by one.
