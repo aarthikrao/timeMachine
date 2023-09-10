@@ -3,7 +3,7 @@ package nodemanager
 import (
 	"errors"
 
-	"github.com/aarthikrao/timeMachine/components/concensus"
+	"github.com/aarthikrao/timeMachine/components/consensus"
 	"github.com/aarthikrao/timeMachine/components/dht"
 	js "github.com/aarthikrao/timeMachine/components/jobstore"
 	"github.com/aarthikrao/timeMachine/process/connectionmanager"
@@ -26,7 +26,7 @@ type NodeManager struct {
 
 	dhtMgr dht.DHT
 
-	cp concensus.Concensus
+	cp consensus.Consensus
 
 	log *zap.Logger
 }
@@ -36,7 +36,7 @@ func CreateNodeManager(
 	dsmgr *dsm.DataStoreManager,
 	connMgr *connectionmanager.ConnectionManager,
 	dhtMgr dht.DHT,
-	cp concensus.Concensus,
+	cp consensus.Consensus,
 	log *zap.Logger,
 ) *NodeManager {
 	return &NodeManager{
@@ -50,7 +50,7 @@ func CreateNodeManager(
 }
 
 // Initialises the app DHT from the server list.
-// It also publishes the slot and node map to other nodes via concensus module
+// It also publishes the slot and node map to other nodes via consensus module
 func (nm *NodeManager) InitAppDHT(slotsPerNode int) error {
 	servers, err := nm.cp.GetConfigurations()
 	if err != nil {
@@ -68,7 +68,7 @@ func (nm *NodeManager) InitAppDHT(slotsPerNode int) error {
 		return err
 	}
 
-	by, err := concensus.ConvertConfigSnapshot(sn)
+	by, err := consensus.ConvertConfigSnapshot(sn)
 	if err != nil {
 		return err
 	}
@@ -123,23 +123,33 @@ func (nm *NodeManager) createConnections() error {
 }
 
 // Returns the location interface of the key. If the node is present on the same node,
-// it returns the db, orelse it returns the connection to the respective server
-func (nm *NodeManager) GetJobStoreInterface(key string) (js.JobStore, error) {
+// it returns the db, or else it returns the connection to the respective server
+func (nm *NodeManager) GetJobStoreInterface(key string, leaderRequired bool) (js.JobStore, error) {
 	if nm.connMgr == nil {
 		return nil, ErrNotYetInitalised
 	}
 
-	// We process all requests via leader node.
-	leader, _, err := nm.dhtMgr.GetLocation(key)
+	leader, follower, err := nm.dhtMgr.GetLocation(key)
 	if err != nil {
 		return nil, err
 	}
 
-	if leader.NodeID == nm.selfNodeID {
-		// Give the db object
-		return nm.dsmgr.GetDataNode(leader.SlotID)
-	} else {
+	if leaderRequired { // Return the leader datasource
+		if leader.NodeID == nm.selfNodeID {
+			// Give the db object
+			return nm.dsmgr.GetDataNode(leader.SlotID)
+		}
+
 		// Give the connection to the node with leader
 		return nm.connMgr.GetJobStore(leader.NodeID)
+
+	} else { // Return the follower datasource
+		if follower.NodeID == nm.selfNodeID {
+			// Give the db object
+			return nm.dsmgr.GetDataNode(follower.SlotID)
+		}
+
+		// Give the connection to the node with follower
+		return nm.connMgr.GetJobStore(follower.NodeID)
 	}
 }

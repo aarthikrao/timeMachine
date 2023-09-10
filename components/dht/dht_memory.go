@@ -37,12 +37,13 @@ type dht struct {
 
 var _ DHT = &dht{}
 
+// Create initializes an empty distributed hash table.
 func Create() *dht {
 	return &dht{}
 }
 
-// Creates a new distributed hash table from the inputs.
-// Should be called only from bootstrap mode or while creating a new cluster
+// Initialise creates a new distributed hash table from the inputs.
+// Should be called only from bootstrap mode or while creating a new cluster.
 func Initialise(slotCountperNode int, nodes []string) (map[SlotID]*SlotInfo, error) {
 
 	d := &dht{
@@ -96,8 +97,8 @@ func Initialise(slotCountperNode int, nodes []string) (map[SlotID]*SlotInfo, err
 	return d.slotVsNodes, nil
 }
 
-// Loads data from a already existing configuration.
-// This must be called only after confirmation from the master
+// Load loads the slot info data from a already existing configuration to a given empty dht.
+// This must be called only after confirmation from the master.
 func (d *dht) Load(slots map[SlotID]*SlotInfo) error {
 	d.mu.Lock()
 	defer d.mu.Unlock()
@@ -128,7 +129,7 @@ func (d *dht) GetSlotsForNode(nodeID NodeID) []SlotID {
 	return slots
 }
 
-// Returns the location of the leader and follower slots and their corresponding nodes
+// GetLocation returns the location of the leader and follower slots and their corresponding nodes
 func (d *dht) GetLocation(key string) (leader *SlotAndNode, follower *SlotAndNode, err error) {
 	d.mu.RLock()
 	defer d.mu.RUnlock()

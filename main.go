@@ -7,12 +7,12 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/aarthikrao/timeMachine/components/client"
-	"github.com/aarthikrao/timeMachine/components/concensus"
-	"github.com/aarthikrao/timeMachine/components/concensus/fsm"
+	"github.com/aarthikrao/timeMachine/components/consensus"
+	"github.com/aarthikrao/timeMachine/components/consensus/fsm"
 	"github.com/aarthikrao/timeMachine/components/dht"
 	"github.com/aarthikrao/timeMachine/components/network/server"
 	"github.com/aarthikrao/timeMachine/components/routestore"
+	"github.com/aarthikrao/timeMachine/process/client"
 	"github.com/aarthikrao/timeMachine/process/connectionmanager"
 	dsm "github.com/aarthikrao/timeMachine/process/datastoremanager"
 	"github.com/aarthikrao/timeMachine/process/nodemanager"
@@ -60,7 +60,7 @@ func main() {
 	)
 
 	// Initialise raft
-	raft, err := concensus.NewRaftConcensus(
+	raft, err := consensus.NewRaftConsensus(
 		*nodeID,
 		*raftPort,
 		raftDataDir,
@@ -92,6 +92,7 @@ func main() {
 		nodeMgr,
 		rStore,
 		raft,
+		log,
 	)
 
 	if !*bootstrap {

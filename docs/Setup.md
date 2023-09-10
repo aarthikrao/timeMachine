@@ -45,6 +45,8 @@ This script uses `curl` command to request the `node1` to accept `node2`, `node3
 
 Health and status checks completed for 5 nodes.
 ```
+This script uses `jq` command to format json output.
+
 If you check the cluster status before [forming a cluster](#create-a-cluster), you will find that all the nodes we spawned are leaders in bootstrap mode
 
 ### Kill all nodes
