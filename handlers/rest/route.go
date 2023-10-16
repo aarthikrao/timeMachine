@@ -3,7 +3,7 @@ package rest
 import (
 	"net/http"
 
-	"github.com/aarthikrao/timeMachine/components/client"
+	"github.com/aarthikrao/timeMachine/process/client"
 	"github.com/aarthikrao/timeMachine/models/routemodels"
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"

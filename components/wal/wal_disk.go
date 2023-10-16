@@ -101,6 +101,10 @@ func (wm *walMiddleware) SetJob(collection string, job *jm.Job) error {
 	return wm.next.SetJob(collection, job)
 }
 
+func (wm *walMiddleware) Type() jobstore.JobStoreType {
+	return jobstore.WAL
+}
+
 func (wm *walMiddleware) DeleteJob(collection, jobID string) error {
 	le := logEntry{
 		Data:       []byte(jobID),
