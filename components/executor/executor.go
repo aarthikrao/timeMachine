@@ -3,11 +3,13 @@ package executor
 import (
 	"errors"
 
+	"github.com/aarthikrao/timeMachine/models/jobmodels"
 	jm "github.com/aarthikrao/timeMachine/models/jobmodels"
 )
 
 var (
 	ErrJobNotFound = errors.New("job not found")
+	ErrToLate      = errors.New("to late")
 )
 
 // Executor queues the jobs and runs them one by one.
@@ -26,4 +28,9 @@ type Executor interface {
 	// Delete deletes the queued job.
 	// If the job is not queued, it will return ErrJobNotFound
 	Delete(jobID string) error
+
+	// Next, returns next dispatched job
+	// It won't block if dispatch queue is empty
+	// Returns true is job is populated in given pointer
+	Next(*jobmodels.Job) bool
 }
