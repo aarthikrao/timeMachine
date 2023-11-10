@@ -3,7 +3,6 @@ package executor
 import (
 	"errors"
 
-	"github.com/aarthikrao/timeMachine/models/jobmodels"
 	jm "github.com/aarthikrao/timeMachine/models/jobmodels"
 )
 
@@ -29,8 +28,12 @@ type Executor interface {
 	// If the job is not queued, it will return ErrJobNotFound
 	Delete(jobID string) error
 
+	DispatchQueue
+}
+
+type DispatchQueue interface {
 	// Next, returns next dispatched job
 	// It won't block if dispatch queue is empty
-	// Returns true is job is populated in given pointer
-	Next(*jobmodels.Job) bool
+	// Returns true if job is populated in given pointer
+	Next(*jm.Job) bool
 }
