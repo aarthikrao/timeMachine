@@ -9,7 +9,7 @@ import (
 
 var (
 	ErrJobNotFound = errors.New("job not found")
-	ErrToLate      = errors.New("to late")
+	ErrToLate      = errors.New("too late")
 )
 
 // Executor queues the jobs and runs them one by one.
