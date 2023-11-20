@@ -36,7 +36,7 @@ type executorPool struct {
 func newpool(requestTimeout, idleConnTimeout time.Duration, poolSize int) *executorPool {
 	var h = make(http.Header)
 
-	h.Set("keep-alive", fmt.Sprintf("timeout=%d", idleConnTimeout.Seconds()))
+	h.Set("keep-alive", fmt.Sprintf("timeout=%d", int(idleConnTimeout.Seconds())))
 	h.Set("content-type", contentType)
 
 	var pool = &executorPool{
