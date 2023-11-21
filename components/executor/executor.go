@@ -8,6 +8,7 @@ import (
 
 var (
 	ErrJobNotFound = errors.New("job not found")
+	ErrToLate      = errors.New("too late")
 )
 
 // Executor queues the jobs and runs them one by one.
@@ -26,4 +27,13 @@ type Executor interface {
 	// Delete deletes the queued job.
 	// If the job is not queued, it will return ErrJobNotFound
 	Delete(jobID string) error
+
+	DispatchQueue
+}
+
+type DispatchQueue interface {
+	// Next, returns next dispatched job
+	// It won't block if dispatch queue is empty
+	// Returns true if job is populated in given pointer
+	Next(*jm.Job) bool
 }
