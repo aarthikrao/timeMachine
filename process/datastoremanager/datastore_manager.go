@@ -21,7 +21,7 @@ type DataStoreManager struct {
 	// This will implement JobStore interface(s)
 
 	// This list will contain the nodes owned by this instance of the server
-	slotsOwned map[dht.SlotID]js.JobStoreConn
+	slotsOwned map[dht.SlotID]js.JobFetcher
 
 	// path to the parent directory containing all the data
 	parentDirectory string
@@ -34,7 +34,7 @@ type DataStoreManager struct {
 func CreateDataStore(parentDirectory string, log *zap.Logger) *DataStoreManager {
 	dsm := &DataStoreManager{
 		parentDirectory: parentDirectory,
-		slotsOwned:      make(map[dht.SlotID]js.JobStoreConn),
+		slotsOwned:      make(map[dht.SlotID]js.JobFetcher),
 		log:             log,
 	}
 
@@ -54,7 +54,7 @@ func (dsm *DataStoreManager) InitialiseDataStores(slots []dht.SlotID) error {
 	return nil
 }
 
-func (dsm *DataStoreManager) initialiseVNode(slot dht.SlotID) (js jobstore.JobStoreConn, err error) {
+func (dsm *DataStoreManager) initialiseVNode(slot dht.SlotID) (js jobstore.JobFetcher, err error) {
 	// Initialise the datastore
 	path := fmt.Sprintf("%s/%d.db", dsm.parentDirectory, slot)
 	ds, err := datastore.CreateBoltDataStore(path)
@@ -82,7 +82,7 @@ func (dsm *DataStoreManager) initialiseVNode(slot dht.SlotID) (js jobstore.JobSt
 	return js, nil
 }
 
-func (dsm *DataStoreManager) GetDataNode(slotID dht.SlotID) (js.JobStore, error) {
+func (dsm *DataStoreManager) GetDataNode(slotID dht.SlotID) (js.JobFetcher, error) {
 	dsm.mu.RLock()
 	defer dsm.mu.RUnlock()
 

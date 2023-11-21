@@ -25,18 +25,18 @@ type JobStore interface {
 	Type() JobStoreType
 }
 
-// JobFetcher is used to fetch the jobs for executing them
-type JobFetcher interface {
-	JobStore
-
-	// FetchJobForBucket is used to fetch all the jobs in the datastore till the provided time
-	FetchJobForBucket(minute int) ([]*jm.Job, error)
-}
-
 // JobStoreConn is a variant of JobStore that encapsulates Close() method
 type JobStoreConn interface {
 	JobStore
 	Close() error
+}
+
+// JobFetcher is used to fetch the jobs for executing them
+type JobFetcher interface {
+	JobStoreConn
+
+	// FetchJobForBucket is used to fetch all the jobs in the datastore till the provided time
+	FetchJobForBucket(minute int) ([]*jm.Job, error)
 }
 
 // JobStoreWithReplicator adds replicate methods on top of JobStore interface

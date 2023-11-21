@@ -34,7 +34,7 @@ type boltDataStore struct {
 	dbFilePath string
 }
 
-func CreateBoltDataStore(path string) (jStore.JobStoreConn, error) {
+func CreateBoltDataStore(path string) (jStore.JobFetcher, error) {
 	db, err := bolt.Open(path, 0666, nil)
 	if err != nil {
 		return nil, err

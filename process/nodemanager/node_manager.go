@@ -2,13 +2,16 @@ package nodemanager
 
 import (
 	"errors"
+	"time"
 
 	"github.com/aarthikrao/timeMachine/components/consensus"
 	"github.com/aarthikrao/timeMachine/components/dht"
+	"github.com/aarthikrao/timeMachine/components/executor"
 	js "github.com/aarthikrao/timeMachine/components/jobstore"
 	"github.com/aarthikrao/timeMachine/process/connectionmanager"
 	dsm "github.com/aarthikrao/timeMachine/process/datastoremanager"
 	"github.com/aarthikrao/timeMachine/utils/address"
+	timeutil "github.com/aarthikrao/timeMachine/utils/time"
 	"go.uber.org/zap"
 )
 
@@ -34,6 +37,8 @@ type NodeManager struct {
 
 	cp consensus.Consensus
 
+	exe executor.Executor
+
 	log *zap.Logger
 }
 
@@ -43,6 +48,7 @@ func CreateNodeManager(
 	connMgr *connectionmanager.ConnectionManager,
 	dhtMgr dht.DHT,
 	cp consensus.Consensus,
+	exe executor.Executor,
 	log *zap.Logger,
 ) *NodeManager {
 	return &NodeManager{
@@ -51,6 +57,7 @@ func CreateNodeManager(
 		dhtMgr:     dhtMgr,
 		connMgr:    connMgr,
 		cp:         cp,
+		exe:        exe,
 		log:        log,
 	}
 }
@@ -97,6 +104,17 @@ func (nm *NodeManager) InitialiseNode() error {
 	if err := nm.createConnections(); err != nil {
 		return err
 	}
+
+	// In a seperate routine keep running a poller to fetch jobs for the next minute and schedule it
+	go func() {
+		for {
+			if err := nm.executeJobs(); err != nil {
+				nm.log.Error("Unable to execute jobs", zap.Error(err))
+			}
+
+			time.Sleep(1 * time.Minute)
+		}
+	}()
 
 	nm.log.Info("Initialsed node")
 	return nil
@@ -207,4 +225,28 @@ func (nm *NodeManager) GetRemoteSlot(key string, leaderRequired bool) (js.JobSto
 		// Give the connection to the node with follower
 		return nm.connMgr.GetJobStore(follower.NodeID)
 	}
+}
+
+// Fetches the jobs fo the next minute and schedules it to the executor
+func (nm *NodeManager) executeJobs() error {
+	for _, slotID := range nm.dhtMgr.GetSlotsForNode(nm.selfNodeID) {
+		js, err := nm.dsmgr.GetDataNode(slotID)
+		if err != nil {
+			return err
+		}
+
+		nextMinute := timeutil.GetCurrentMinutes() + 1
+
+		jobs, err := js.FetchJobForBucket(nextMinute)
+		if err != nil {
+			return err
+		}
+
+		for _, j := range jobs {
+			nm.exe.Run(*j)
+		}
+
+	}
+
+	return nil
 }

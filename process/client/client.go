@@ -229,3 +229,9 @@ func (cp *ClientProcess) DeleteRoute(routeID string) error {
 	// Delete the route from consensus
 	return cp.cp.Apply(by)
 }
+
+// Dummy method to satisfy the JobFetcher interface. Client will not usually call this method.
+func (cp *ClientProcess) Close() error {
+	return nil
+
+}
