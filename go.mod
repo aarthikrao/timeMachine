@@ -3,7 +3,7 @@ module github.com/aarthikrao/timeMachine
 go 1.20
 
 require (
-	github.com/aarthikrao/wal v0.0.7
+	github.com/aarthikrao/wal v0.0.8
 	github.com/cespare/xxhash/v2 v2.2.0
 	github.com/gin-contrib/cors v1.4.0
 	github.com/gin-gonic/gin v1.9.1
