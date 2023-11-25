@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net"
 
+	"github.com/aarthikrao/timeMachine/components/jobstore"
 	"github.com/aarthikrao/timeMachine/components/network"
 	jobmodels "github.com/aarthikrao/timeMachine/models/jobmodels"
 	"github.com/aarthikrao/timeMachine/process/client"
@@ -14,7 +15,7 @@ import (
 
 type server struct {
 	network.JobStoreServer
-	cp         *client.ClientProcess
+	cp         jobstore.JobStoreWithReplicator
 	grpcServer *grpc.Server
 	log        *zap.Logger
 }
@@ -85,4 +86,21 @@ func (s *server) SetJob(ctx context.Context, jd *jobmodels.JobCreationDetails) (
 // DeleteJob will remove the job from time machine instance
 func (s *server) DeleteJob(ctx context.Context, jd *jobmodels.JobFetchDetails) (*jobmodels.Empty, error) {
 	return &jobmodels.Empty{}, s.cp.DeleteJob(jd.Collection, jd.ID)
+}
+
+// ReplicateSetJob is the same as SetJob. It is called only by the leader to replicate the job on the follower
+func (s *server) ReplicateSetJob(ctx context.Context, jd *jobmodels.JobCreationDetails) (*jobmodels.JobCreationDetails, error) {
+	err := s.cp.ReplicateSetJob(jd.Collection, &jobmodels.Job{
+		ID:        jd.ID,
+		TriggerMS: int(jd.TriggerTime),
+		Meta:      jd.Meta,
+		Route:     jd.Route,
+	})
+
+	return jd, err
+}
+
+// ReplicateDeleteJob is the same as DeleteJobJob. It is called only by the leader to replicate the job on the follower
+func (s *server) ReplicateDeleteJob(ctx context.Context, jd *jobmodels.JobFetchDetails) (*jobmodels.Empty, error) {
+	return &jobmodels.Empty{}, s.cp.ReplicateDeleteJob(jd.Collection, jd.ID)
 }

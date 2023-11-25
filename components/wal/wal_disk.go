@@ -30,7 +30,7 @@ type logEntry struct {
 type walMiddleware struct {
 	w *wal.WriteAheadLog
 
-	next jobstore.JobStore
+	next jobstore.JobFetcher
 }
 
 // Compile time interface check
@@ -43,7 +43,7 @@ func InitaliseWriteAheadLog(
 	maxLogSize int64,
 	maxSegments int,
 	log *zap.Logger,
-	next jobstore.JobStore,
+	next jobstore.JobFetcher,
 ) (*walMiddleware, error) {
 	w, err := wal.NewWriteAheadLog(&wal.WALOptions{
 		LogDir:            walDir,
@@ -74,7 +74,14 @@ func (d *walMiddleware) GetLatestOffset() int64 {
 
 // Close safely closes the WAL. All the data is persisted in WAL before closing
 func (d *walMiddleware) Close() error {
-	return d.w.Close()
+	d.w.Close()
+	return d.next.Close()
+}
+
+func (d *walMiddleware) FetchJobForBucket(minute int) ([]*jm.Job, error) {
+	// This is just a dummy method. There is no implementation from wal side.
+	// It only calls the fetch from next object
+	return d.next.FetchJobForBucket(minute)
 }
 
 func (wm *walMiddleware) GetJob(collection, jobID string) (*jm.Job, error) {

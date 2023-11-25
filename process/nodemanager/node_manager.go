@@ -2,19 +2,28 @@ package nodemanager
 
 import (
 	"errors"
+	"time"
 
 	"github.com/aarthikrao/timeMachine/components/consensus"
 	"github.com/aarthikrao/timeMachine/components/dht"
+	"github.com/aarthikrao/timeMachine/components/executor"
 	js "github.com/aarthikrao/timeMachine/components/jobstore"
 	"github.com/aarthikrao/timeMachine/process/connectionmanager"
 	dsm "github.com/aarthikrao/timeMachine/process/datastoremanager"
 	"github.com/aarthikrao/timeMachine/utils/address"
+	timeutil "github.com/aarthikrao/timeMachine/utils/time"
 	"go.uber.org/zap"
 )
 
 var (
 	// node has not yet been initalised
 	ErrNotYetInitalised = errors.New("not yet initialised")
+
+	// The jobstore corresponding to the key you are looking for does not exist on this node
+	ErrNotSlotOwner = errors.New("not slot owner")
+
+	// This means that this node is the owner of the slot and you are trying to access the remote connection to it
+	ErrLocalSlotOwner = errors.New("local slot owner")
 )
 
 type NodeManager struct {
@@ -28,6 +37,8 @@ type NodeManager struct {
 
 	cp consensus.Consensus
 
+	exe executor.Executor
+
 	log *zap.Logger
 }
 
@@ -37,6 +48,7 @@ func CreateNodeManager(
 	connMgr *connectionmanager.ConnectionManager,
 	dhtMgr dht.DHT,
 	cp consensus.Consensus,
+	exe executor.Executor,
 	log *zap.Logger,
 ) *NodeManager {
 	return &NodeManager{
@@ -45,6 +57,7 @@ func CreateNodeManager(
 		dhtMgr:     dhtMgr,
 		connMgr:    connMgr,
 		cp:         cp,
+		exe:        exe,
 		log:        log,
 	}
 }
@@ -92,6 +105,17 @@ func (nm *NodeManager) InitialiseNode() error {
 		return err
 	}
 
+	// In a seperate routine keep running a poller to fetch jobs for the next minute and schedule it
+	go func() {
+		for {
+			if err := nm.executeJobs(); err != nil {
+				nm.log.Error("Unable to execute jobs", zap.Error(err))
+			}
+
+			time.Sleep(1 * time.Minute)
+		}
+	}()
+
 	nm.log.Info("Initialsed node")
 	return nil
 }
@@ -122,9 +146,32 @@ func (nm *NodeManager) createConnections() error {
 	return nil
 }
 
-// Returns the location interface of the key. If the node is present on the same node,
-// it returns the db, or else it returns the connection to the respective server
-func (nm *NodeManager) GetJobStoreInterface(key string, leaderRequired bool) (js.JobStore, error) {
+func (nm *NodeManager) IsSlotOwner(key string, leaderRequired bool) (bool, error) {
+	if nm.connMgr == nil {
+		return false, ErrNotYetInitalised
+	}
+
+	leader, follower, err := nm.dhtMgr.GetLocation(key)
+	if err != nil {
+		return false, err
+	}
+
+	if leaderRequired {
+		if leader.NodeID == nm.selfNodeID {
+			return true, nil
+		}
+
+	} else {
+		if follower.NodeID == nm.selfNodeID {
+			return true, nil
+		}
+
+	}
+
+	return false, nil
+}
+
+func (nm *NodeManager) GetLocalSlot(key string, leaderRequired bool) (js.JobStore, error) {
 	if nm.connMgr == nil {
 		return nil, ErrNotYetInitalised
 	}
@@ -140,16 +187,66 @@ func (nm *NodeManager) GetJobStoreInterface(key string, leaderRequired bool) (js
 			return nm.dsmgr.GetDataNode(leader.SlotID)
 		}
 
-		// Give the connection to the node with leader
-		return nm.connMgr.GetJobStore(leader.NodeID)
-
 	} else { // Return the follower datasource
 		if follower.NodeID == nm.selfNodeID {
 			// Give the db object
 			return nm.dsmgr.GetDataNode(follower.SlotID)
 		}
+	}
+
+	return nil, ErrNotSlotOwner
+}
+
+func (nm *NodeManager) GetRemoteSlot(key string, leaderRequired bool) (js.JobStoreWithReplicator, error) {
+	if nm.connMgr == nil {
+		return nil, ErrNotYetInitalised
+	}
+
+	leader, follower, err := nm.dhtMgr.GetLocation(key)
+	if err != nil {
+		return nil, err
+	}
+
+	if leaderRequired {
+		// Check if the job exists locally
+		if leader.NodeID == nm.selfNodeID {
+			return nil, ErrLocalSlotOwner
+		}
+
+		// Give the connection to the node with leader
+		return nm.connMgr.GetJobStore(leader.NodeID)
+
+	} else {
+		// Check if the job exists locally
+		if follower.NodeID == nm.selfNodeID {
+			return nil, ErrLocalSlotOwner
+		}
 
 		// Give the connection to the node with follower
 		return nm.connMgr.GetJobStore(follower.NodeID)
 	}
+}
+
+// Fetches the jobs fo the next minute and schedules it to the executor
+func (nm *NodeManager) executeJobs() error {
+	for _, slotID := range nm.dhtMgr.GetSlotsForNode(nm.selfNodeID) {
+		js, err := nm.dsmgr.GetDataNode(slotID)
+		if err != nil {
+			return err
+		}
+
+		nextMinute := timeutil.GetCurrentMinutes() + 1
+
+		jobs, err := js.FetchJobForBucket(nextMinute)
+		if err != nil {
+			return err
+		}
+
+		for _, j := range jobs {
+			nm.exe.Run(*j)
+		}
+
+	}
+
+	return nil
 }

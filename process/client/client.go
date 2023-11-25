@@ -8,6 +8,7 @@ import (
 	jm "github.com/aarthikrao/timeMachine/models/jobmodels"
 	rm "github.com/aarthikrao/timeMachine/models/routemodels"
 	"github.com/aarthikrao/timeMachine/process/nodemanager"
+	"github.com/pkg/errors"
 	"go.uber.org/zap"
 )
 
@@ -42,11 +43,27 @@ func CreateClientProcess(
 // TODO: Add is leader check for route store.
 
 func (cp *ClientProcess) GetJob(collection, jobID string) (*jm.Job, error) {
-	slot, err := cp.nodeMgr.GetJobStoreInterface(jobID, true)
+	var slot jobstore.JobStore
+
+	owned, err := cp.nodeMgr.IsSlotOwner(jobID, true)
 	if err != nil {
 		return nil, err
 	}
-	cp.ownerCheck(slot)
+
+	if owned {
+		slot, err = cp.nodeMgr.GetLocalSlot(jobID, true)
+		if err != nil {
+			return nil, err
+		}
+
+	} else {
+		slot, err = cp.nodeMgr.GetRemoteSlot(jobID, true)
+		if err != nil {
+			return nil, err
+		}
+
+	}
+
 	return slot.GetJob(collection, jobID)
 }
 
@@ -59,12 +76,38 @@ func (cp *ClientProcess) SetJob(collection string, job *jm.Job) error {
 		return err
 	}
 
-	slot, err := cp.nodeMgr.GetJobStoreInterface(job.ID, true)
+	owned, err := cp.nodeMgr.IsSlotOwner(job.ID, true)
 	if err != nil {
 		return err
 	}
-	cp.ownerCheck(slot)
-	return slot.SetJob(collection, job)
+
+	if !owned {
+		// Forward the request to owner node
+		slot, err := cp.nodeMgr.GetRemoteSlot(job.ID, true)
+		if err != nil {
+			return err
+		}
+
+		return slot.SetJob(collection, job)
+	}
+
+	// add job to the local slot
+	localSlot, err := cp.nodeMgr.GetLocalSlot(job.ID, true)
+	if err != nil {
+		return err
+	}
+
+	if err := localSlot.SetJob(collection, job); err != nil {
+		return err
+	}
+
+	// add job to the follower
+	remoteFollowerSlot, err := cp.nodeMgr.GetRemoteSlot(job.ID, false)
+	if err != nil {
+		return err
+	}
+
+	return remoteFollowerSlot.ReplicateSetJob(collection, job)
 }
 
 func (cp *ClientProcess) DeleteJob(collection, jobID string) error {
@@ -72,12 +115,65 @@ func (cp *ClientProcess) DeleteJob(collection, jobID string) error {
 		return ErrInvalidDetails
 	}
 
-	slot, err := cp.nodeMgr.GetJobStoreInterface(jobID, true)
+	owned, err := cp.nodeMgr.IsSlotOwner(jobID, true)
 	if err != nil {
 		return err
 	}
-	cp.ownerCheck(slot)
-	return slot.DeleteJob(collection, jobID)
+
+	if !owned {
+		// Forward the request to owner node
+		slot, err := cp.nodeMgr.GetRemoteSlot(jobID, true)
+		if err != nil {
+			return err
+		}
+
+		return slot.DeleteJob(collection, jobID)
+	}
+
+	// Update the local slot
+	localSlot, err := cp.nodeMgr.GetLocalSlot(jobID, true)
+	if err != nil {
+		return err
+	}
+
+	if err := localSlot.DeleteJob(collection, jobID); err != nil {
+		return err
+	}
+
+	// Update the follower
+	remoteFollowerSlot, err := cp.nodeMgr.GetRemoteSlot(jobID, false)
+	if err != nil {
+		return err
+	}
+
+	return remoteFollowerSlot.ReplicateDeleteJob(collection, jobID)
+}
+
+// ReplicateSetJob can be only called from the master
+func (cp *ClientProcess) ReplicateSetJob(collection string, job *jm.Job) error {
+	localFollowerSlot, err := cp.nodeMgr.GetLocalSlot(job.ID, false)
+	if err != nil {
+		return errors.Wrap(err, "follower slot: ")
+	}
+
+	if err := localFollowerSlot.SetJob(collection, job); err != nil {
+		return errors.Wrap(err, "follower slot: ")
+	}
+
+	return nil
+}
+
+func (cp *ClientProcess) ReplicateDeleteJob(collection, jobID string) error {
+	localFollowerSlot, err := cp.nodeMgr.GetLocalSlot(jobID, false)
+	if err != nil {
+		return errors.Wrap(err, "follower slot: ")
+	}
+
+	if err := localFollowerSlot.DeleteJob(collection, jobID); err != nil {
+		return errors.Wrap(err, "follower slot: ")
+	}
+
+	return nil
 }
 
 func (cp *ClientProcess) Type() jobstore.JobStoreType {
@@ -134,12 +230,8 @@ func (cp *ClientProcess) DeleteRoute(routeID string) error {
 	return cp.cp.Apply(by)
 }
 
-// ownerCheck checks if the returned jobstore object is local, or on another time machine node
-func (cp *ClientProcess) ownerCheck(slot jobstore.JobStore) {
-	switch slot.Type() {
-	case jobstore.Database, jobstore.WAL:
-		break
-	default:
-		cp.log.Debug("Not the owner", zap.String("type", string(slot.Type())))
-	}
+// Dummy method to satisfy the JobFetcher interface. Client will not usually call this method.
+func (cp *ClientProcess) Close() error {
+	return nil
+
 }

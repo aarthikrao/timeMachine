@@ -2,6 +2,7 @@ package network
 
 import (
 	"context"
+	"time"
 
 	"github.com/aarthikrao/timeMachine/components/jobstore"
 	"google.golang.org/grpc"
@@ -10,22 +11,25 @@ import (
 )
 
 type networkHandler struct {
-	client JobStoreClient
-	conn   *grpc.ClientConn
+	client     JobStoreClient
+	conn       *grpc.ClientConn
+	rpcTimeout time.Duration
 }
 
 // Compile time interface validation
-var _ jobstore.JobStore = &networkHandler{}
+var _ jobstore.JobStoreWithReplicator = &networkHandler{}
 
-func CreateJobStoreClient(conn *grpc.ClientConn) *networkHandler {
+func CreateJobStoreClient(conn *grpc.ClientConn, rpcTimeout time.Duration) *networkHandler {
 	return &networkHandler{
-		client: NewJobStoreClient(conn),
-		conn:   conn,
+		client:     NewJobStoreClient(conn),
+		conn:       conn,
+		rpcTimeout: rpcTimeout,
 	}
 }
 
 func (nh *networkHandler) GetJob(collection, jobID string) (*jm.Job, error) {
-	resp, err := nh.client.GetJob(context.Background(), &jm.JobFetchDetails{
+	ctx, _ := context.WithDeadline(context.Background(), time.Now().Add(nh.rpcTimeout))
+	resp, err := nh.client.GetJob(ctx, &jm.JobFetchDetails{
 		ID:         jobID,
 		Collection: collection,
 	})
@@ -44,7 +48,8 @@ func (nh *networkHandler) GetJob(collection, jobID string) (*jm.Job, error) {
 }
 
 func (nh *networkHandler) SetJob(collection string, job *jm.Job) error {
-	_, err := nh.client.SetJob(context.Background(), &jm.JobCreationDetails{
+	ctx, _ := context.WithDeadline(context.Background(), time.Now().Add(nh.rpcTimeout))
+	_, err := nh.client.SetJob(ctx, &jm.JobCreationDetails{
 		TriggerTime: int64(job.TriggerMS),
 		ID:          job.ID,
 		Meta:        job.Meta,
@@ -56,7 +61,8 @@ func (nh *networkHandler) SetJob(collection string, job *jm.Job) error {
 }
 
 func (nh *networkHandler) DeleteJob(collection, jobID string) error {
-	_, err := nh.client.DeleteJob(context.Background(), &jm.JobFetchDetails{
+	ctx, _ := context.WithDeadline(context.Background(), time.Now().Add(nh.rpcTimeout))
+	_, err := nh.client.DeleteJob(ctx, &jm.JobFetchDetails{
 		Collection: collection,
 		ID:         jobID,
 	})
@@ -66,4 +72,27 @@ func (nh *networkHandler) DeleteJob(collection, jobID string) error {
 
 func (nh *networkHandler) Type() jobstore.JobStoreType {
 	return jobstore.Network
+}
+
+func (nh *networkHandler) ReplicateSetJob(collection string, job *jm.Job) error {
+	ctx, _ := context.WithDeadline(context.Background(), time.Now().Add(nh.rpcTimeout))
+	_, err := nh.client.ReplicateSetJob(ctx, &jm.JobCreationDetails{
+		TriggerTime: int64(job.TriggerMS),
+		ID:          job.ID,
+		Meta:        job.Meta,
+		Route:       job.Route,
+		Collection:  collection,
+	})
+
+	return err
+}
+
+func (nh *networkHandler) ReplicateDeleteJob(collection, jobID string) error {
+	ctx, _ := context.WithDeadline(context.Background(), time.Now().Add(nh.rpcTimeout))
+	_, err := nh.client.DeleteJob(ctx, &jm.JobFetchDetails{
+		Collection: collection,
+		ID:         jobID,
+	})
+
+	return err
 }
