@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"flag"
+	"fmt"
 	"os"
 	"os/signal"
 	"syscall"
@@ -28,14 +29,15 @@ var (
 	dataDir   = flag.String("datadir", "data", "Provide the data directory without trailing '/'")
 	raftPort  = flag.Int("raftPort", 8101, "raft listening port")
 	httpPort  = flag.Int("httpPort", 8001, "http listening port")
-	bootstrap = flag.Bool("bootstrap", false, "Should be `true` for the first node of the cluster")
+	bootstrap = flag.Bool("bootstrap", false, "Bootstrap mode. Should be `true` for the first node of the cluster")
 )
 
 func main() {
 	flag.Parse()
 	if *nodeID == "" || *dataDir == "" || *raftPort == 0 {
+		fmt.Println("Usage:", "\n", "Example: ./timeMachine --nodeID=node1 --raftPort=8101 --httpPort=8001 --bootstrap=true")
 		flag.PrintDefaults()
-		panic("Invalid flags. try: ./timeMachine --nodeID=node1 --raftPort=8101 --httpPort=8001 --bootstrap=true")
+		os.Exit(1)
 	}
 
 	// Prepare data and raft folder
