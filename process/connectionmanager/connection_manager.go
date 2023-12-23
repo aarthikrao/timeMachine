@@ -11,6 +11,7 @@ import (
 	"github.com/pkg/errors"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/connectivity"
 )
 
 var (
@@ -77,7 +78,7 @@ func (cm *ConnectionManager) connect(nodeID dht.NodeID, addr string) error {
 }
 
 // Adds new connection to the connection manager
-func (cm *ConnectionManager) AddNewConnection(serverID string, address string) error {
+func (cm *ConnectionManager) Add(serverID string, address string) error {
 	cm.mu.Lock()
 	defer cm.mu.Unlock()
 
@@ -102,6 +103,23 @@ func (cm *ConnectionManager) GetJobStore(nodeID dht.NodeID) (js.JobStoreWithRepl
 	}
 
 	return nil, ErrNodeNotPresent
+}
+
+func (cm *ConnectionManager) CheckHealth(nodeId dht.NodeID) bool {
+	cm.mu.RLock()
+	defer cm.mu.RUnlock()
+
+	tmc := cm.tmcMap[nodeId]
+	if tmc == nil {
+		return false
+	}
+
+	switch tmc.grpcConn.GetState() {
+	case connectivity.Ready, connectivity.Idle:
+		return true
+	}
+
+	return false
 }
 
 // Closes all the connections maintained by the connection manager
