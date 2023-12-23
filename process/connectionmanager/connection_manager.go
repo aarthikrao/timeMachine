@@ -53,9 +53,14 @@ func CreateConnectionManager(log *zap.Logger, rpcTimeout time.Duration) *Connect
 
 // connects to the provided nodeID.
 func (cm *ConnectionManager) connect(nodeID dht.NodeID, addr string) error {
-	conn, err := grpc.Dial(addr,
+	ctx, cancelFunc := context.WithTimeout(context.Background(), 10*time.Second)
+	conn, err := grpc.DialContext(
+		ctx,
+		addr,
 		grpc.WithInsecure(),
 		grpc.WithBlock())
+
+	defer cancelFunc()
 
 	if err != nil {
 		return err
