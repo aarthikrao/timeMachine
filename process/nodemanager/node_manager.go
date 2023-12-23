@@ -107,12 +107,10 @@ func (nm *NodeManager) InitialiseNode() error {
 
 	// In a seperate routine keep running a poller to fetch jobs for the next minute and schedule it
 	go func() {
-		for {
+		for range time.Tick(1 * time.Minute) {
 			if err := nm.executeJobs(); err != nil {
 				nm.log.Error("Unable to execute jobs", zap.Error(err))
 			}
-
-			time.Sleep(1 * time.Minute)
 		}
 	}()
 
@@ -131,7 +129,7 @@ func (nm *NodeManager) createConnections() error {
 		grpcAddress := address.GetGRPCAddress(string(server.Address))
 
 		nm.log.Info("Connecting to GRPC server", zap.Any("id", server.ID), zap.String("address", grpcAddress))
-		if err := nm.connMgr.AddNewConnection(serverID, grpcAddress); err != nil {
+		if err := nm.connMgr.Add(serverID, grpcAddress); err != nil {
 			nm.log.Error("Unable to add connection",
 				zap.String("serverID", serverID),
 				zap.String("address", grpcAddress),
