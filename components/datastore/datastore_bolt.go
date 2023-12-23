@@ -198,7 +198,7 @@ func (bds *boltDataStore) Type() jobstore.JobStoreType {
 // FetchJobForBucket is used to fetch all the jobs in the datastore till the provided time
 func (bds *boltDataStore) FetchJobForBucket(minute int) ([]*jm.Job, error) {
 	// Start the transaction.
-	tx, err := bds.db.Begin(false)
+	tx, err := bds.db.Begin(true)
 	if err != nil {
 		return nil, err
 	}
