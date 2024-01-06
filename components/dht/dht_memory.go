@@ -1,8 +1,6 @@
 package dht
 
 import (
-	"encoding/json"
-	"fmt"
 	"sync"
 
 	"github.com/cespare/xxhash/v2"
@@ -27,9 +25,11 @@ type SlotAndNode struct {
 	NodeID NodeID
 }
 
+// dht is an instance that holds the information about the assignments of slots to nodes,
+// along with their leadership roles.
 type dht struct {
 
-	// maintains the location of all slots slotid vs nodeid
+	// Maintains the location of all slots slotID vs nodeID.
 	slotVsNodes map[SlotID]*SlotInfo
 
 	mu sync.RWMutex
@@ -44,7 +44,10 @@ func Create() *dht {
 
 // Initialise creates a new distributed hash table from the inputs.
 // Should be called only from bootstrap mode or while creating a new cluster.
+// For loading data, Initialise should always follow with Load().
 func Initialise(slotCountperNode int, nodes []string) (map[SlotID]*SlotInfo, error) {
+	// slotCountperNode is the number of slots assigned to each node,
+	// and nodes should be a list of node IDs that participate in the dht.
 
 	d := &dht{
 		slotVsNodes: make(map[SlotID]*SlotInfo),
@@ -55,13 +58,16 @@ func Initialise(slotCountperNode int, nodes []string) (map[SlotID]*SlotInfo, err
 	nodeCount := len(nodes)
 	slotCount := slotCountperNode * nodeCount
 
-	// The distribution below makes sure the slots are
-	// assigned equally in a round robin manner
+	// At the end of the distributing process,
+	// distribution represents how many slots(the distribution count) are assigned to each node,
+	// ensuring a relatively even distribution in a round-robin manner.
 	distribution := make([]int, nodeCount)
 	for i := 0; i < slotCount; i++ {
 		distribution[i%nodeCount]++
 	}
 
+	// slotNumber will later be transformed to SlotID,
+	// representing the ID of the distributed slot.
 	slotNumber := 0
 	for i := 0; i < len(distribution); i++ { // For each of the node
 		for j := 0; j < distribution[i]; j++ { // For the distribution count assigned to that node
@@ -76,7 +82,8 @@ func Initialise(slotCountperNode int, nodes []string) (map[SlotID]*SlotInfo, err
 		}
 	}
 
-	// Assign leaders in a round robin manner
+	// Assign leaders in a round-robin manner.
+	// Each node in nodeVsSlot is assigned a leader and follower node for each of its allocated slots.
 	for i := 0; i < slotCountperNode; i++ {
 		for nodeID := range nodeVsSlot {
 			slotID := nodeVsSlot[nodeID][i]
@@ -91,9 +98,6 @@ func Initialise(slotCountperNode int, nodes []string) (map[SlotID]*SlotInfo, err
 		}
 	}
 
-	by, _ := json.Marshal(d.slotVsNodes) // TODO: Remove
-	fmt.Printf("Slot Info: %s\n", string(by))
-
 	return d.slotVsNodes, nil
 }
 
@@ -107,12 +111,20 @@ func (d *dht) Load(slots map[SlotID]*SlotInfo) error {
 	return nil
 }
 
-// Snapshot returns the node vs slot ids map in json format
+// Snapshot returns a copy of d.slotVsNodes.
 func (d *dht) Snapshot() map[SlotID]*SlotInfo {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 
-	return d.slotVsNodes // TODO: Verify if this will share memory
+	// Create a new map to hold the snapshot
+	snapshot := make(map[SlotID]*SlotInfo)
+
+	// Copy the data from d.slotVsNodes to the snapshot map
+	for slotID, slotInfo := range d.slotVsNodes {
+		snapshot[slotID] = slotInfo
+	}
+
+	return snapshot
 }
 
 func (d *dht) GetSlotsForNode(nodeID NodeID) []SlotID {
