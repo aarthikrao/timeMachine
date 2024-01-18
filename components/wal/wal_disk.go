@@ -34,8 +34,8 @@ type walMiddleware struct {
 }
 
 // Compile time interface check
-var _ jobstore.JobStoreConn = &walMiddleware{}
-var _ WALReader = &walMiddleware{}
+var _ jobstore.JobStoreConn = (*walMiddleware)(nil)
+var _ WALReader = (*walMiddleware)(nil)
 
 // InitaliseWriteAheadLog returns a instance of WAL on disk
 func InitaliseWriteAheadLog(

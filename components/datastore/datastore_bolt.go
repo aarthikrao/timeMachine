@@ -13,7 +13,7 @@ import (
 )
 
 // Compile time validation for jobstore interface
-var _ jStore.JobStoreConn = &boltDataStore{}
+var _ jStore.JobStoreConn = (*boltDataStore)(nil)
 
 // scheduleCollection will contain all the schedules and will be used to fetch the minute wise jobs
 var scheduleCollection []byte = []byte("scheduleCollection")

@@ -35,7 +35,7 @@ type dht struct {
 	mu sync.RWMutex
 }
 
-var _ DHT = &dht{}
+var _ DHT = (*dht)(nil)
 
 // Create initializes an empty distributed hash table.
 func Create() *dht {

@@ -17,7 +17,7 @@ type networkHandler struct {
 }
 
 // Compile time interface validation
-var _ jobstore.JobStoreWithReplicator = &networkHandler{}
+var _ jobstore.JobStoreWithReplicator = (*networkHandler)(nil)
 
 func CreateJobStoreClient(conn *grpc.ClientConn, rpcTimeout time.Duration) *networkHandler {
 	return &networkHandler{

@@ -23,8 +23,8 @@ type ClientProcess struct {
 }
 
 // compile time validation
-var _ jobstore.JobStore = &ClientProcess{}
-var _ jobstore.JobFetcher = &ClientProcess{}
+var _ jobstore.JobStore = (*ClientProcess)(nil)
+var _ jobstore.JobFetcher = (*ClientProcess)(nil)
 
 func CreateClientProcess(
 	nodeMgr *nodemanager.NodeManager,
