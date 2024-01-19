@@ -28,7 +28,9 @@ func CreateJobStoreClient(conn *grpc.ClientConn, rpcTimeout time.Duration) *netw
 }
 
 func (nh *networkHandler) GetJob(collection, jobID string) (*jm.Job, error) {
-	ctx, _ := context.WithDeadline(context.Background(), time.Now().Add(nh.rpcTimeout))
+	ctx, cancelFunc := context.WithDeadline(context.Background(), time.Now().Add(nh.rpcTimeout))
+	defer cancelFunc()
+
 	resp, err := nh.client.GetJob(ctx, &jm.JobFetchDetails{
 		ID:         jobID,
 		Collection: collection,
@@ -48,7 +50,9 @@ func (nh *networkHandler) GetJob(collection, jobID string) (*jm.Job, error) {
 }
 
 func (nh *networkHandler) SetJob(collection string, job *jm.Job) error {
-	ctx, _ := context.WithDeadline(context.Background(), time.Now().Add(nh.rpcTimeout))
+	ctx, cancelFunc := context.WithDeadline(context.Background(), time.Now().Add(nh.rpcTimeout))
+	defer cancelFunc()
+
 	_, err := nh.client.SetJob(ctx, &jm.JobCreationDetails{
 		TriggerTime: int64(job.TriggerMS),
 		ID:          job.ID,
@@ -61,7 +65,9 @@ func (nh *networkHandler) SetJob(collection string, job *jm.Job) error {
 }
 
 func (nh *networkHandler) DeleteJob(collection, jobID string) error {
-	ctx, _ := context.WithDeadline(context.Background(), time.Now().Add(nh.rpcTimeout))
+	ctx, cancelFunc := context.WithDeadline(context.Background(), time.Now().Add(nh.rpcTimeout))
+	defer cancelFunc()
+
 	_, err := nh.client.DeleteJob(ctx, &jm.JobFetchDetails{
 		Collection: collection,
 		ID:         jobID,
@@ -75,7 +81,9 @@ func (nh *networkHandler) Type() jobstore.JobStoreType {
 }
 
 func (nh *networkHandler) ReplicateSetJob(collection string, job *jm.Job) error {
-	ctx, _ := context.WithDeadline(context.Background(), time.Now().Add(nh.rpcTimeout))
+	ctx, cancelFunc := context.WithDeadline(context.Background(), time.Now().Add(nh.rpcTimeout))
+	defer cancelFunc()
+
 	_, err := nh.client.ReplicateSetJob(ctx, &jm.JobCreationDetails{
 		TriggerTime: int64(job.TriggerMS),
 		ID:          job.ID,
@@ -88,7 +96,9 @@ func (nh *networkHandler) ReplicateSetJob(collection string, job *jm.Job) error 
 }
 
 func (nh *networkHandler) ReplicateDeleteJob(collection, jobID string) error {
-	ctx, _ := context.WithDeadline(context.Background(), time.Now().Add(nh.rpcTimeout))
+	ctx, cancelFunc := context.WithDeadline(context.Background(), time.Now().Add(nh.rpcTimeout))
+	defer cancelFunc()
+
 	_, err := nh.client.DeleteJob(ctx, &jm.JobFetchDetails{
 		Collection: collection,
 		ID:         jobID,
