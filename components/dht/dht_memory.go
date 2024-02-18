@@ -169,3 +169,22 @@ func (d *dht) replicaSlot(location1 SlotID) SlotID {
 	slotCount := len(d.slotVsNodes)
 	return SlotID((int(location1) + slotCount/2) % slotCount)
 }
+
+// ReassignMasterSlots marks all the slots owned by the failed node as followers and their corresponding replicas as leaders.
+// This method must be called only from the master.
+func (d *dht) ReassignMasterSlots(failedNode NodeID) {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+
+	for slotID, slotInfo := range d.slotVsNodes {
+		if slotInfo.NodeID == failedNode && slotInfo.SlotState == Leader {
+			// Find the replica slot and promote to leader
+			rSlotInfo := d.slotVsNodes[d.replicaSlot(slotID)]
+			rSlotInfo.SlotState = Leader
+
+			// Demote the failed node slot as follower
+			slotInfo.SlotState = Follower
+		}
+		// else, the failed slot is already the follower. No need to change
+	}
+}

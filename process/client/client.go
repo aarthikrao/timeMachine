@@ -23,8 +23,8 @@ type ClientProcess struct {
 }
 
 // compile time validation
-var _ jobstore.JobStore = (*ClientProcess)(nil)
 var _ jobstore.JobFetcher = (*ClientProcess)(nil)
+var _ jobstore.JobStoreWithReplicator = (*ClientProcess)(nil)
 
 func CreateClientProcess(
 	nodeMgr *nodemanager.NodeManager,
@@ -189,6 +189,10 @@ func (cp *ClientProcess) FetchJobForBucket(minute int) ([]*jm.Job, error) {
 	return nil, nil // TODO: Yet to implement
 }
 
+func (cp *ClientProcess) HealthCheck() (bool, error) {
+	return true, nil // We are ready to accept new requests. So we always return true
+}
+
 func (cp *ClientProcess) GetRoute(routeID string) (*rm.Route, error) {
 	if routeID == "" {
 		return nil, ErrInvalidDetails
@@ -233,5 +237,4 @@ func (cp *ClientProcess) DeleteRoute(routeID string) error {
 // Dummy method to satisfy the JobFetcher interface. Client will not usually call this method.
 func (cp *ClientProcess) Close() error {
 	return nil
-
 }

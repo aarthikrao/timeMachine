@@ -11,7 +11,6 @@ import (
 	"github.com/pkg/errors"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/connectivity"
 )
 
 var (
@@ -105,21 +104,26 @@ func (cm *ConnectionManager) GetJobStore(nodeID dht.NodeID) (js.JobStoreWithRepl
 	return nil, ErrNodeNotPresent
 }
 
-func (cm *ConnectionManager) CheckHealth(nodeId dht.NodeID) bool {
+// GetHealthStatus returns a health check report for all the nodes connected from this node.
+// The map contains the nodeID vs true if the node is healthy, false otherwise
+func (cm *ConnectionManager) GetHealthStatus() map[dht.NodeID]bool {
 	cm.mu.RLock()
 	defer cm.mu.RUnlock()
 
-	tmc := cm.tmcMap[nodeId]
-	if tmc == nil {
-		return false
+	m := make(map[dht.NodeID]bool)
+
+	for nodeID, tmc := range cm.tmcMap {
+		healthy, err := tmc.jobStore.HealthCheck()
+		if err != nil {
+			cm.log.Error("Health check failed", zap.String("nodeID", string(nodeID)))
+			m[nodeID] = false
+			continue
+		}
+
+		m[nodeID] = healthy
 	}
 
-	switch tmc.grpcConn.GetState() {
-	case connectivity.Ready, connectivity.Idle:
-		return true
-	}
-
-	return false
+	return m
 }
 
 // Closes all the connections maintained by the connection manager

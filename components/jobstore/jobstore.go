@@ -25,25 +25,26 @@ type JobStore interface {
 	Type() JobStoreType
 }
 
-// JobStoreConn is a variant of JobStore that encapsulates Close() method
-type JobStoreConn interface {
+// JobStoreOnDisk is a variant of JobStore that encapsulates Close() method
+type JobStoreOnDisk interface {
 	JobStore
 	Close() error
 }
 
 // JobFetcher is used to fetch the jobs for executing them
 type JobFetcher interface {
-	JobStoreConn
+	JobStoreOnDisk
 
 	// FetchJobForBucket is used to fetch all the jobs in the datastore till the provided time
 	FetchJobForBucket(minute int) ([]*jm.Job, error)
 }
 
 // JobStoreWithReplicator adds replicate methods on top of JobStore interface
-// This will be used for updating the ow
+// This will be used by remote connections with need to replicate the data, check health etc.
 type JobStoreWithReplicator interface {
 	JobStore
 
 	ReplicateSetJob(collection string, job *jm.Job) error
 	ReplicateDeleteJob(collection, jobID string) error
+	HealthCheck() (bool, error)
 }

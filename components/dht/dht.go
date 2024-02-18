@@ -29,4 +29,8 @@ type DHT interface {
 
 	// Snapshot returns the current node vs slot ids map
 	Snapshot() map[SlotID]*SlotInfo
+
+	// ReassignMasterSlots marks all the slots owned by the failed node as followers and their corresponding replicas as leaders.
+	// This method must be called only from the master.
+	ReassignMasterSlots(failedNode NodeID)
 }
