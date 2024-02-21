@@ -104,3 +104,12 @@ func (s *server) ReplicateSetJob(ctx context.Context, jd *jobmodels.JobCreationD
 func (s *server) ReplicateDeleteJob(ctx context.Context, jd *jobmodels.JobFetchDetails) (*jobmodels.Empty, error) {
 	return &jobmodels.Empty{}, s.cp.ReplicateDeleteJob(jd.Collection, jd.ID)
 }
+
+// Health check
+func (s *server) HealthCheck(context.Context, *jobmodels.HealthRequest) (*jobmodels.HealthResponse, error) {
+	healthy, err := s.cp.HealthCheck()
+
+	return &jobmodels.HealthResponse{
+		Healthy: healthy,
+	}, err
+}

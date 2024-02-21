@@ -21,3 +21,8 @@ message JobFetchDetails {
 // Empty message because grpc doesnt allow methods without return
 message Empty {}
 
+// For futureproofing the health check API
+message HealthRequest {}
+message HealthResponse {
+    bool Healthy = 1;
+}

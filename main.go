@@ -16,6 +16,7 @@ import (
 	"github.com/aarthikrao/timeMachine/components/network/server"
 	"github.com/aarthikrao/timeMachine/components/routestore"
 	"github.com/aarthikrao/timeMachine/process/client"
+	"github.com/aarthikrao/timeMachine/process/clusterhealth"
 	"github.com/aarthikrao/timeMachine/process/connectionmanager"
 	dsm "github.com/aarthikrao/timeMachine/process/datastoremanager"
 	"github.com/aarthikrao/timeMachine/process/nodemanager"
@@ -113,6 +114,15 @@ func main() {
 		// 	3. Communicate with all the nodes in the raft group and apply the DHT in all the nodes.
 		log.Warn("NodeVsSlot and datastores not yet initialised. Consider rebalancing the cluster once started")
 	}
+
+	clusterhealth.CreateClusterHealthChecker(
+		appDht,
+		raft,
+		connMgr,
+		10*time.Second, // TODO: Move to config
+		2,
+		log,
+	)
 
 	srv := InitTimeMachineHttpServer(
 		clientProcess,
