@@ -67,7 +67,7 @@ func (dsm *DataStoreManager) initialiseVNode(slot dht.SlotID) (js jobstore.JobFe
 	js, err = wal.InitaliseWriteAheadLog(
 		walPath,
 		10e6, // 10MB per file
-		5,    // 5 files // TODOD: Move to config
+		5,    // 5 files // TODO: Move to config
 		dsm.log,
 		ds,
 	)

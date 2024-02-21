@@ -14,6 +14,12 @@ type NodeHealth struct {
 
 	// The number of times this node was unreachable
 	UnreachableCount int
+
+	// If the node has been marked unreachable, it means that we have already
+	// reassigned the master-slots that belong to this node.
+	// We are maintaining this variable to make sure we dont end up doing reassignment
+	// multiple times
+	MarkedUnreachable bool
 }
 
 type clusterHealth struct {
@@ -76,11 +82,13 @@ func (ch *clusterHealth) GetClusterHealth() {
 
 			if reachable {
 				n.LastContact = time.Now()
+				n.UnreachableCount = 0
+				n.MarkedUnreachable = false
 				continue
 			}
 
 			n.UnreachableCount++
-			if n.UnreachableCount >= ch.UnreachableThreshold {
+			if n.UnreachableCount >= ch.UnreachableThreshold && !n.MarkedUnreachable {
 				// The node has been down for more than UnreachableThreshold. We have to reassign the master
 				ch.log.Info("Reassigning master slots because node is unreachable",
 					zap.Int("threshold", n.UnreachableCount),
@@ -96,6 +104,8 @@ func (ch *clusterHealth) GetClusterHealth() {
 				if err = ch.cp.Apply(by); err != nil {
 					ch.log.Error("Error in applying config snapshot to cp", zap.Error(err), zap.String("msg", string(by)))
 				}
+
+				n.MarkedUnreachable = true
 			}
 		}
 	}
