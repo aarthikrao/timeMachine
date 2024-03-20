@@ -4,17 +4,17 @@ import (
 	"net/http"
 
 	"github.com/aarthikrao/timeMachine/models/jobmodels"
-	"github.com/aarthikrao/timeMachine/process/client"
+	"github.com/aarthikrao/timeMachine/process/cordinator"
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 )
 
 type jobRestHandler struct {
-	cp  *client.ClientProcess
+	cp  *cordinator.CordinatorProcess
 	log *zap.Logger
 }
 
-func CreateJobRestHandler(cp *client.ClientProcess, log *zap.Logger) *jobRestHandler {
+func CreateJobRestHandler(cp *cordinator.CordinatorProcess, log *zap.Logger) *jobRestHandler {
 	return &jobRestHandler{
 		cp:  cp,
 		log: log,

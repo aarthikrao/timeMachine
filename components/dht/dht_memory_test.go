@@ -9,62 +9,64 @@ var d *dht
 
 func init() {
 	d = Create() // Create an empty instance
-	slotsVsNodes, err := Initialise(4, []string{"node1", "node2", "node3"})
-	if err != nil {
-		panic(err) // data configuration failed
-	}
-
-	err = d.Load(slotsVsNodes) // load data to d
+	shards, err := InitialiseDHT(4, []string{"node1", "node2", "node3"}, 3)
 	if err != nil {
 		panic(err)
 	}
+	d.Load(shards) // load data to d
 }
 
-func Test_dht_GetLocation(t *testing.T) {
+func Test_dht_GetShard(t *testing.T) {
+	type args struct {
+		key string
+	}
 	tests := []struct {
-		name         string
-		key          string
-		wantLeader   *SlotAndNode
-		wantFollower *SlotAndNode
-		wantErr      bool
+		name    string
+		args    args
+		want    ShardLocation
+		wantErr bool
 	}{
 		{
-			name: "node1",
-			key:  "Key-A",
-			wantLeader: &SlotAndNode{
-				SlotID: 0,
-				NodeID: "node1",
+			name: "Key: ABCD",
+			args: args{
+				key: "ABCD",
 			},
-			wantFollower: &SlotAndNode{
-				SlotID: 6,
-				NodeID: "node2",
+			want: ShardLocation{
+				ID:        2,
+				Leader:    "node3",
+				Followers: []NodeID{"node1", "node2"},
 			},
-		},
-		{
-			name: "node-{havskf8hgfh23##$%}",
-			key:  "node-{havskf8hgfh23##$%}",
-			wantLeader: &SlotAndNode{
-				SlotID: 5,
-				NodeID: "node2",
+		}, {
+			name: "Key: kg654fd89h",
+			args: args{
+				key: "kg654fd89h",
 			},
-			wantFollower: &SlotAndNode{
-				SlotID: 11,
-				NodeID: "node3",
+			want: ShardLocation{
+				ID:        1,
+				Leader:    "node2",
+				Followers: []NodeID{"node3", "node1"},
+			},
+		}, {
+			name: "Key: )(*&^%$#@!aitgehv)",
+			args: args{
+				key: ")(*&^%$#@!aitgehv)",
+			},
+			want: ShardLocation{
+				ID:        2,
+				Leader:    "node3",
+				Followers: []NodeID{"node1", "node2"},
 			},
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			gotLeader, gotFollower, err := d.GetLocation(tt.key)
+			got, err := d.GetShard(tt.args.key)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("dht.GetLocation() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("dht.GetShard() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if !reflect.DeepEqual(gotLeader, tt.wantLeader) {
-				t.Errorf("dht.GetLocation() gotLeader = %v, want %v", gotLeader, tt.wantLeader)
-			}
-			if !reflect.DeepEqual(gotFollower, tt.wantFollower) {
-				t.Errorf("dht.GetLocation() gotFollower = %v, want %v", gotFollower, tt.wantFollower)
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("dht.GetShard() = %v, want %v", got, tt.want)
 			}
 		})
 	}

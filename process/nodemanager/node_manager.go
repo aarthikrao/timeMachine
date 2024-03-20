@@ -24,6 +24,9 @@ var (
 
 	// This means that this node is the owner of the slot and you are trying to access the remote connection to it
 	ErrLocalSlotOwner = errors.New("local slot owner")
+
+	// some other node handles the leader shard
+	ErrNotShardLeader = errors.New("not shard leader")
 )
 
 type NodeManager struct {
@@ -64,7 +67,7 @@ func CreateNodeManager(
 
 // Initialises the app DHT from the server list.
 // It also publishes the slot and node map to other nodes via consensus module
-func (nm *NodeManager) InitAppDHT(slotsPerNode int) error {
+func (nm *NodeManager) InitAppDHT(shards, replicas int) error {
 	servers, err := nm.cp.GetConfigurations()
 	if err != nil {
 		return err
@@ -75,7 +78,7 @@ func (nm *NodeManager) InitAppDHT(slotsPerNode int) error {
 		nodes = append(nodes, serverID)
 	}
 
-	sn, err := dht.Initialise(slotsPerNode, nodes)
+	sn, err := dht.InitialiseDHT(shards, nodes, replicas)
 	if err != nil {
 		nm.log.Error("Unable to initialise dht", zap.Error(err))
 		return err
@@ -92,12 +95,12 @@ func (nm *NodeManager) InitAppDHT(slotsPerNode int) error {
 // InitialiseNode will be called once the dht is initialised.
 // It will help setting up the connections and initialise the datastores
 func (nm *NodeManager) InitialiseNode() error {
-	slots := nm.dhtMgr.GetSlotsForNode(nm.selfNodeID)
-	if len(slots) <= 0 {
-		return dht.ErrNotInitialised
+	shards := nm.dhtMgr.GetAllShardsForNode(nm.selfNodeID)
+	if len(shards) <= 0 {
+		return dht.ErrDHTNotInitialised
 	}
 
-	if err := nm.dsmgr.InitialiseDataStores(slots); err != nil {
+	if err := nm.dsmgr.InitialiseDataStores(shards); err != nil {
 		return err
 	}
 
@@ -144,91 +147,26 @@ func (nm *NodeManager) createConnections() error {
 	return nil
 }
 
-func (nm *NodeManager) IsSlotOwner(key string, leaderRequired bool) (bool, error) {
-	if nm.connMgr == nil {
-		return false, ErrNotYetInitalised
+func (nm *NodeManager) GetLocalShard(shardID dht.ShardID) (js.JobStore, error) {
+	if nm.dsmgr == nil {
+		return nil, ErrNotYetInitalised
 	}
 
-	leader, follower, err := nm.dhtMgr.GetLocation(key)
-	if err != nil {
-		return false, err
-	}
-
-	if leaderRequired {
-		if leader.NodeID == nm.selfNodeID {
-			return true, nil
-		}
-
-	} else {
-		if follower.NodeID == nm.selfNodeID {
-			return true, nil
-		}
-
-	}
-
-	return false, nil
+	return nm.dsmgr.GetDataNode(shardID)
 }
 
-func (nm *NodeManager) GetLocalSlot(key string, leaderRequired bool) (js.JobStore, error) {
+func (nm *NodeManager) GetRemoteConnection(nodeID dht.NodeID) (js.JobStoreWithReplicator, error) {
 	if nm.connMgr == nil {
 		return nil, ErrNotYetInitalised
 	}
 
-	leader, follower, err := nm.dhtMgr.GetLocation(key)
-	if err != nil {
-		return nil, err
-	}
-
-	if leaderRequired { // Return the leader datasource
-		if leader.NodeID == nm.selfNodeID {
-			// Give the db object
-			return nm.dsmgr.GetDataNode(leader.SlotID)
-		}
-
-	} else { // Return the follower datasource
-		if follower.NodeID == nm.selfNodeID {
-			// Give the db object
-			return nm.dsmgr.GetDataNode(follower.SlotID)
-		}
-	}
-
-	return nil, ErrNotSlotOwner
-}
-
-func (nm *NodeManager) GetRemoteSlot(key string, leaderRequired bool) (js.JobStoreWithReplicator, error) {
-	if nm.connMgr == nil {
-		return nil, ErrNotYetInitalised
-	}
-
-	leader, follower, err := nm.dhtMgr.GetLocation(key)
-	if err != nil {
-		return nil, err
-	}
-
-	if leaderRequired {
-		// Check if the job exists locally
-		if leader.NodeID == nm.selfNodeID {
-			return nil, ErrLocalSlotOwner
-		}
-
-		// Give the connection to the node with leader
-		return nm.connMgr.GetJobStore(leader.NodeID)
-
-	} else {
-		// Check if the job exists locally
-		if follower.NodeID == nm.selfNodeID {
-			return nil, ErrLocalSlotOwner
-		}
-
-		// Give the connection to the node with follower
-		return nm.connMgr.GetJobStore(follower.NodeID)
-	}
+	return nm.connMgr.GetJobStore(nodeID)
 }
 
 // Fetches the jobs fo the next minute and schedules it to the executor
 func (nm *NodeManager) executeJobs() error {
-	for _, slotID := range nm.dhtMgr.GetSlotsForNode(nm.selfNodeID) {
-		js, err := nm.dsmgr.GetDataNode(slotID)
+	for _, shardID := range nm.dhtMgr.GetLeaderShardsForNode(nm.selfNodeID) {
+		js, err := nm.dsmgr.GetDataNode(shardID)
 		if err != nil {
 			return err
 		}

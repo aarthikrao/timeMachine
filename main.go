@@ -15,8 +15,8 @@ import (
 	"github.com/aarthikrao/timeMachine/components/executor"
 	"github.com/aarthikrao/timeMachine/components/network/server"
 	"github.com/aarthikrao/timeMachine/components/routestore"
-	"github.com/aarthikrao/timeMachine/process/client"
 	"github.com/aarthikrao/timeMachine/process/connectionmanager"
+	"github.com/aarthikrao/timeMachine/process/cordinator"
 	dsm "github.com/aarthikrao/timeMachine/process/datastoremanager"
 	"github.com/aarthikrao/timeMachine/process/nodemanager"
 	"github.com/aarthikrao/timeMachine/utils/constants"
@@ -94,10 +94,12 @@ func main() {
 	fsmStore.SetChangeHandler(nodeMgr.InitialiseNode)
 
 	// Initialise process
-	clientProcess := client.CreateClientProcess(
+	cordinatorProcess := cordinator.CreateCordinatorProcess(
+		*nodeID,
 		nodeMgr,
 		rStore,
 		raft,
+		appDht,
 		log,
 	)
 
@@ -115,7 +117,7 @@ func main() {
 	}
 
 	srv := InitTimeMachineHttpServer(
-		clientProcess,
+		cordinatorProcess,
 		appDht,
 		raft,
 		nodeMgr,
@@ -127,7 +129,7 @@ func main() {
 	// Start the GRPC server
 	grpcPort := *raftPort + constants.GRPCPortAdd
 	grpcServer := server.InitServer(
-		clientProcess,
+		cordinatorProcess,
 		grpcPort,
 		log,
 	)
