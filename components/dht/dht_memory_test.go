@@ -9,7 +9,7 @@ var d *dht
 
 func init() {
 	d = Create() // Create an empty instance
-	shards, err := InitialiseDHT(4, []string{"node1", "node2", "node3"}, 3)
+	shards, err := InitialiseDHT(12, []string{"node1", "node2", "node3"}, 3)
 	if err != nil {
 		panic(err)
 	}
@@ -42,9 +42,9 @@ func Test_dht_GetShard(t *testing.T) {
 				key: "kg654fd89h",
 			},
 			want: ShardLocation{
-				ID:        1,
-				Leader:    "node2",
-				Followers: []NodeID{"node3", "node1"},
+				ID:        5,
+				Leader:    "node3",
+				Followers: []NodeID{"node1", "node2"},
 			},
 		}, {
 			name: "Key: )(*&^%$#@!aitgehv)",
