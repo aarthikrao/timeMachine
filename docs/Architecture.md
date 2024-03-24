@@ -5,7 +5,6 @@ We want to build a scalable, consistent, fault tolerant scheduler that is simple
 * [Redis](redis.io) for its simplicity. We want to support REdis Serialization Protocol (RESP) in the future.
 
 ## ⚙️ Design choices
-## Design Choices
 - **Node Discovery, Failure Detection, Membership Management**: We use the Raft consensus algorithm. Raft helps us manage cluster membership and detect failures efficiently, ensuring high availability.
 - **Data Replication, Consistency**: Our system is based on a partitioned master-slave architecture. It defaults to strong consistency, but allows for tunable consistency levels according to application needs.
 - **Load Balancing, Data Partitioning**: We implement the hash shard algorithm for effective data partitioning and load balancing, optimizing resource utilization and response times.
@@ -19,7 +18,6 @@ We want to build a scalable, consistent, fault tolerant scheduler that is simple
 Refer [DHT component](./../components/dht/dht.md)
 
 ## ✏️ Definitions
-### Terms
 | Term                        | Description                                                                                                                                                                         |
 |-----------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | Admin                       | A human with special privileges to manually trigger operations like compaction, rebalance, etc., under low-traffic conditions. Robots are not permitted.                            |
