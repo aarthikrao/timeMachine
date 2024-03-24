@@ -15,6 +15,7 @@ We want to build a scalable, consistent, fault tolerant scheduler that is simple
 - **Query Interface**: Currently, we offer a REST API for queries. We will support the Redis Serialization Protocol (RESP) in the future, catering to more use cases and improving efficiency.
 - **Storage**: We chose BBoltDB for its B-tree based implementation. This choice suits our need for efficient range scans. We're open to incorporating LSM based storage engine in the future.
 - **Encoding**: Data is stored in binary format, preferably using protobuf or message pack. This method offers compact storage and fast serialization/deserialization. Suggest if you have a better alternative
+- **Message passing and communication**: We are using gRPC. It is an efficient, high-performance framework that enables strong-typed interfaces for robust message passing between services. Its use of HTTP/2 allows for multiplexed streams, reducing latency and improving network communication. The strong-typed interfaces facilitate clearer, more reliable API contracts, enhancing developer productivity and system reliability.
 
 ## 🦋 Data distribution
 
@@ -69,10 +70,6 @@ Shard Number = xxHash(job_id) % number_of_shards
 ```
 
 The location of the node for a key is derived from the dht. You can read more about this in the [DHT component](/components/dht/dht.md)
-
-### RPCs and message passing
-
-refer [MessagePassing](./MessagePassing.md)
 
 ## 💡 Inspirations
 
