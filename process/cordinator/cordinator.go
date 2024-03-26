@@ -122,7 +122,7 @@ func (cp *CordinatorProcess) SetJob(collection string, job *jm.Job) error {
 			return err
 		}
 
-		err = conn.SetJob(collection, job)
+		err = conn.ReplicateSetJob(collection, job)
 		if err != nil {
 			return err
 		}
@@ -175,7 +175,7 @@ func (cp *CordinatorProcess) DeleteJob(collection, jobID string) error {
 			return err
 		}
 
-		err = conn.DeleteJob(collection, jobID)
+		err = conn.ReplicateDeleteJob(collection, jobID)
 		if err != nil {
 			return err
 		}

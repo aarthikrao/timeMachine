@@ -99,7 +99,7 @@ func (nh *networkHandler) ReplicateDeleteJob(collection, jobID string) error {
 	ctx, cancelFunc := context.WithDeadline(context.Background(), time.Now().Add(nh.rpcTimeout))
 	defer cancelFunc()
 
-	_, err := nh.client.DeleteJob(ctx, &jm.JobFetchDetails{
+	_, err := nh.client.ReplicateDeleteJob(ctx, &jm.JobFetchDetails{
 		Collection: collection,
 		ID:         jobID,
 	})

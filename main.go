@@ -25,7 +25,7 @@ import (
 
 // Input flags
 var (
-	nodeID    = flag.String("nodeID", "", "Raft nodeID of this node. Must be unique across cluster")
+	nodeID    = flag.String("nodeID", "node1", "Raft nodeID of this node. Must be unique across cluster")
 	dataDir   = flag.String("datadir", "data", "Provide the data directory without trailing '/'")
 	raftPort  = flag.Int("raftPort", 8101, "raft listening port")
 	httpPort  = flag.Int("httpPort", 8001, "http listening port")
@@ -53,7 +53,7 @@ func main() {
 		appDht  dht.DHT                              = dht.Create()
 		rStore  *routestore.RouteStore               = routestore.InitRouteStore()
 		dsmgr   *dsm.DataStoreManager                = dsm.CreateDataStore(boltDataDir, log)
-		connMgr *connectionmanager.ConnectionManager = connectionmanager.CreateConnectionManager(log, 500*time.Millisecond) // TODO: Add to config
+		connMgr *connectionmanager.ConnectionManager = connectionmanager.CreateConnectionManager(log, 10*time.Second) // TODO: Add to config
 		exe     executor.Executor                    = executor.NewExecutor()
 	)
 
