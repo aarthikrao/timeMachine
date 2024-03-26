@@ -11,4 +11,5 @@
 - [ ] Clock synchronisation
 - [ ] Delete/Update handling for executing jobs
 - [ ] Prometheus/ Open monitoring
+- [ ] Tunable consistency model to reduce latency
 
