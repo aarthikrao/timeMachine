@@ -8,9 +8,9 @@ import (
 	rm "github.com/aarthikrao/timeMachine/models/routemodels"
 )
 
-func ConvertConfigSnapshot(Slots map[dht.SlotID]*dht.SlotInfo) ([]byte, error) {
+func ConvertConfigSnapshot(shards map[dht.ShardID]dht.ShardLocation) ([]byte, error) {
 	cs := fsm.ConfigSnapshot{
-		Slots: Slots,
+		Shards: shards,
 	}
 	by, err := json.Marshal(&cs)
 	if err != nil {

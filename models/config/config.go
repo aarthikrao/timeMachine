@@ -1,6 +1,6 @@
 package config
 
 type Config struct {
-	// The count of slots per node. Refer DHT package
-	SlotPerNodeCount int `json:"slot_per_node_count,omitempty"`
+	Shards   int `json:"shards,omitempty" bson:"shards,omitempty"`
+	Replicas int `json:"replicas,omitempty" bson:"replicas,omitempty"`
 }

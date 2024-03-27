@@ -3,18 +3,18 @@ package rest
 import (
 	"net/http"
 
-	"github.com/aarthikrao/timeMachine/process/client"
 	"github.com/aarthikrao/timeMachine/models/routemodels"
+	"github.com/aarthikrao/timeMachine/process/cordinator"
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 )
 
 type routeRestHandler struct {
-	cp  *client.ClientProcess
+	cp  *cordinator.CordinatorProcess
 	log *zap.Logger
 }
 
-func CreateRouteRestHandler(cp *client.ClientProcess, log *zap.Logger) *routeRestHandler {
+func CreateRouteRestHandler(cp *cordinator.CordinatorProcess, log *zap.Logger) *routeRestHandler {
 	return &routeRestHandler{
 		cp:  cp,
 		log: log,

@@ -21,7 +21,7 @@ type DataStoreManager struct {
 	// This will implement JobStore interface(s)
 
 	// This list will contain the nodes owned by this instance of the server
-	slotsOwned map[dht.SlotID]js.JobFetcher
+	slotsOwned map[dht.ShardID]js.JobFetcher
 
 	// path to the parent directory containing all the data
 	parentDirectory string
@@ -34,14 +34,14 @@ type DataStoreManager struct {
 func CreateDataStore(parentDirectory string, log *zap.Logger) *DataStoreManager {
 	dsm := &DataStoreManager{
 		parentDirectory: parentDirectory,
-		slotsOwned:      make(map[dht.SlotID]js.JobFetcher),
+		slotsOwned:      make(map[dht.ShardID]js.JobFetcher),
 		log:             log,
 	}
 
 	return dsm
 }
 
-func (dsm *DataStoreManager) InitialiseDataStores(slots []dht.SlotID) error {
+func (dsm *DataStoreManager) InitialiseDataStores(slots []dht.ShardID) error {
 	for _, slot := range slots {
 		ds, err := dsm.initialiseVNode(slot)
 		if err != nil {
@@ -54,7 +54,7 @@ func (dsm *DataStoreManager) InitialiseDataStores(slots []dht.SlotID) error {
 	return nil
 }
 
-func (dsm *DataStoreManager) initialiseVNode(slot dht.SlotID) (js jobstore.JobFetcher, err error) {
+func (dsm *DataStoreManager) initialiseVNode(slot dht.ShardID) (js jobstore.JobFetcher, err error) {
 	// Initialise the datastore
 	path := fmt.Sprintf("%s/%d.db", dsm.parentDirectory, slot)
 	ds, err := datastore.CreateBoltDataStore(path)
@@ -82,7 +82,7 @@ func (dsm *DataStoreManager) initialiseVNode(slot dht.SlotID) (js jobstore.JobFe
 	return js, nil
 }
 
-func (dsm *DataStoreManager) GetDataNode(slotID dht.SlotID) (js.JobFetcher, error) {
+func (dsm *DataStoreManager) GetDataNode(slotID dht.ShardID) (js.JobFetcher, error) {
 	dsm.mu.RLock()
 	defer dsm.mu.RUnlock()
 
@@ -90,7 +90,7 @@ func (dsm *DataStoreManager) GetDataNode(slotID dht.SlotID) (js.JobFetcher, erro
 		return nil, ErrDataStoreNotInitialised
 	}
 
-	return dsm.slotsOwned[slotID], nil
+	return dsm.slotsOwned[slotID], nil // TODO: Handle node not available
 }
 
 func (dsm *DataStoreManager) Close() {

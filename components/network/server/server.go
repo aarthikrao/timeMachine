@@ -8,7 +8,7 @@ import (
 	"github.com/aarthikrao/timeMachine/components/jobstore"
 	"github.com/aarthikrao/timeMachine/components/network"
 	jobmodels "github.com/aarthikrao/timeMachine/models/jobmodels"
-	"github.com/aarthikrao/timeMachine/process/client"
+	"github.com/aarthikrao/timeMachine/process/cordinator"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 )
@@ -21,7 +21,7 @@ type server struct {
 }
 
 func InitServer(
-	cp *client.ClientProcess,
+	cp *cordinator.CordinatorProcess,
 	port int,
 	log *zap.Logger,
 ) *server {

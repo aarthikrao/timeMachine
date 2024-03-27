@@ -34,5 +34,5 @@ type Command struct {
 // ConfigSnapshot is a snapshot of the current state of the node.
 // It is replicated across all the nodes in the cluster with Raft.
 type ConfigSnapshot struct {
-	Slots map[dht.SlotID]*dht.SlotInfo `json:"slots,omitempty" bson:"slots,omitempty"`
+	Shards map[dht.ShardID]dht.ShardLocation `json:"slots,omitempty" bson:"slots,omitempty"`
 }

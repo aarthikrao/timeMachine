@@ -131,7 +131,7 @@ func (crh *clusterRestHandler) Configure(c *gin.Context) {
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 	}
 
-	err := crh.nodeMgr.InitAppDHT(cf.SlotPerNodeCount)
+	err := crh.nodeMgr.InitAppDHT(cf.Shards, cf.Replicas)
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return

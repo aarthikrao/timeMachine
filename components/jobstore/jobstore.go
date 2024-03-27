@@ -10,10 +10,10 @@ import (
 type JobStoreType string
 
 const (
-	Database JobStoreType = "db"
-	WAL      JobStoreType = "wal"
-	Network  JobStoreType = "network"
-	Client   JobStoreType = "client"
+	Database   JobStoreType = "db"
+	WAL        JobStoreType = "wal"
+	Network    JobStoreType = "network"
+	Cordinator JobStoreType = "client"
 )
 
 // JobStore methods that are used to store and retrieve data across disk and network
