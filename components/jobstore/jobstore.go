@@ -25,15 +25,15 @@ type JobStore interface {
 	Type() JobStoreType
 }
 
-// JobStoreConn is a variant of JobStore that encapsulates Close() method
-type JobStoreConn interface {
+// JobStoreDisk is a variant of JobStore that encapsulates Close() method
+type JobStoreDisk interface {
 	JobStore
 	Close() error
 }
 
 // JobFetcher is used to fetch the jobs for executing them
 type JobFetcher interface {
-	JobStoreConn
+	JobStoreDisk
 
 	// FetchJobForBucket is used to fetch all the jobs in the datastore till the provided time
 	FetchJobForBucket(minute int) ([]*jm.Job, error)
