@@ -106,3 +106,15 @@ func (nh *networkHandler) ReplicateDeleteJob(collection, jobID string) error {
 
 	return err
 }
+
+func (nh *networkHandler) HealthCheck() (bool, error) {
+	ctx, cancelFunc := context.WithDeadline(context.Background(), time.Now().Add(nh.rpcTimeout))
+	defer cancelFunc()
+
+	resp, err := nh.client.HealthCheck(ctx, &jm.HealthRequest{})
+	if err != nil {
+		return false, err
+	}
+
+	return resp.Healthy, nil
+}

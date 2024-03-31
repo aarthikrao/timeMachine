@@ -30,6 +30,7 @@ type CordinatorProcess struct {
 // compile time validation
 var _ jobstore.JobStore = (*CordinatorProcess)(nil)
 var _ jobstore.JobFetcher = (*CordinatorProcess)(nil)
+var _ jobstore.JobStoreWithReplicator = (*CordinatorProcess)(nil)
 
 func CreateCordinatorProcess(
 	selfNodeID string,
@@ -273,6 +274,10 @@ func (cp *CordinatorProcess) DeleteRoute(routeID string) error {
 
 	// Delete the route from consensus
 	return cp.cp.Apply(by)
+}
+
+func (cp *CordinatorProcess) HealthCheck() (bool, error) {
+	return true, nil // We are ready to accept new requests. So we always return true
 }
 
 // Dummy method to satisfy the JobFetcher interface. Client will not usually call this method.
