@@ -11,6 +11,7 @@ import (
 	"github.com/pkg/errors"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 )
 
 var (
@@ -58,7 +59,7 @@ func (cm *ConnectionManager) connect(nodeID dht.NodeID, addr string) error {
 	conn, err := grpc.DialContext(
 		ctx,
 		addr,
-		grpc.WithInsecure(),
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
 		grpc.WithBlock())
 
 	defer cancelFunc()
