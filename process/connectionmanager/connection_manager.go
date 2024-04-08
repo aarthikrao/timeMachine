@@ -113,7 +113,7 @@ func (cm *ConnectionManager) GetHealthStatus() map[dht.NodeID]bool {
 	for nodeID, tmc := range cm.tmcMap {
 		healthy, err := tmc.jobStore.HealthCheck()
 		if err != nil {
-			cm.log.Error("Health check failed", zap.String("nodeID", string(nodeID)))
+			cm.log.Error("Health check failed", zap.String("failedNode", string(nodeID)))
 			m[nodeID] = false
 			continue
 		}

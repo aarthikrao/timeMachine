@@ -84,22 +84,57 @@ func (ch *clusterHealth) GetClusterHealth() {
 				n.LastContact = time.Now()
 				n.UnreachableCount = 0
 				n.MarkedUnreachable = false
+
+				ch.clusterInfo[ni] = n
 				continue
 			}
 
+			ch.log.Info("Unreachable node",
+				zap.String("unreachable", string(ni)),
+				zap.Int("retryCount", n.UnreachableCount),
+				zap.Bool("marked", n.MarkedUnreachable))
+
 			n.UnreachableCount++
 			if n.UnreachableCount >= ch.UnreachableThreshold && !n.MarkedUnreachable {
-				// The node has been down for more than UnreachableThreshold. We have to reassign the master
-				ch.log.Info("Reassigning master slots because node is unreachable",
+				ch.log.Info("Handling node failure",
 					zap.Int("threshold", n.UnreachableCount),
 					zap.Time("lastContact", n.LastContact),
+					zap.String("unreachableNode", string(ni)),
 				)
 
-				// TODO: Here we have to handle node reachability failure
-				// as a master and apply the new configurations to FSM
-
+				ch.handleNodeFailure(ni)
 				n.MarkedUnreachable = true
 			}
+
+			ch.clusterInfo[ni] = n
 		}
+	}
+}
+
+func (ch *clusterHealth) handleNodeFailure(ni dhtComponent.NodeID) {
+	// Raft will take care of split brain
+
+	snapshot := ch.dht.Snapshot()
+	for si, loc := range snapshot {
+		if loc.Leader == ni {
+
+			// Here we are assiging the next follower as a leader
+			// TODO: In real tife usecases, we will have to take into consideration
+			// of a lot of factors before assigning the leader
+			nextFollower := snapshot[si].Followers[0]
+			shard := snapshot[si]
+			shard.Leader = nextFollower
+
+			snapshot[si] = shard
+		}
+	}
+
+	by, err := consensus.ConvertConfigSnapshot(snapshot)
+	if err != nil {
+		ch.log.Error("Error in converting config snapshot", zap.Error(err))
+	}
+
+	if err = ch.cp.Apply(by); err != nil {
+		ch.log.Error("Error in applying config snapshot to cp", zap.Error(err), zap.String("msg", string(by)))
 	}
 }
