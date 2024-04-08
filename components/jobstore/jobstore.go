@@ -40,10 +40,11 @@ type JobFetcher interface {
 }
 
 // JobStoreWithReplicator adds replicate methods on top of JobStore interface
-// This will be used for updating the ow
+// This will be used by remote connections with need to replicate the data, check health etc.
 type JobStoreWithReplicator interface {
 	JobStore
 
 	ReplicateSetJob(collection string, job *jm.Job) error
 	ReplicateDeleteJob(collection, jobID string) error
+	HealthCheck() (bool, error)
 }

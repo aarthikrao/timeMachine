@@ -21,4 +21,7 @@ service JobStore {
 
     // ReplicateDeleteJob is the same as DeleteJobJob. It is called only by the leader to replicate the job on the follower
     rpc ReplicateDeleteJob(jobmodels.JobFetchDetails) returns (jobmodels.Empty){}
+
+    // Used only to make sure the node is servicable
+    rpc HealthCheck(jobmodels.HealthRequest) returns (jobmodels.HealthResponse) {}
 }
