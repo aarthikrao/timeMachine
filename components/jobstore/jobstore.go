@@ -19,8 +19,8 @@ const (
 // JobStore methods that are used to store and retrieve data across disk and network
 type JobStore interface {
 	GetJob(collection, jobID string) (*jm.Job, error)
-	SetJob(collection string, job *jm.Job) error
-	DeleteJob(collection, jobID string) error
+	SetJob(collection string, job *jm.Job) (offset int64, err error)
+	DeleteJob(collection, jobID string) (offset int64, err error)
 
 	Type() JobStoreType
 }
@@ -44,7 +44,7 @@ type JobFetcher interface {
 type JobStoreWithReplicator interface {
 	JobStore
 
-	ReplicateSetJob(collection string, job *jm.Job) error
-	ReplicateDeleteJob(collection, jobID string) error
+	ReplicateSetJob(collection string, job *jm.Job) (offset int64, err error)
+	ReplicateDeleteJob(collection, jobID string) (offset int64, err error)
 	HealthCheck() (bool, error)
 }

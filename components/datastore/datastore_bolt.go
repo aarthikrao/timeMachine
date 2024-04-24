@@ -74,7 +74,13 @@ func (bds *boltDataStore) GetJob(collection, jobID string) (*jm.Job, error) {
 	return jm.GetJobFromBytes(val)
 }
 
-func (bds *boltDataStore) SetJob(collection string, job *jm.Job) error {
+// (offset int64, err error)
+func (bds *boltDataStore) SetJob(collection string, job *jm.Job) (offset int64, err error) {
+	// To satisfy interface check. We are not maintaining any offset at boltdb
+	return 0, bds.setJob(collection, job)
+}
+
+func (bds *boltDataStore) setJob(collection string, job *jm.Job) error {
 	by, err := job.ToBytes()
 	if err != nil {
 		return err
@@ -131,7 +137,12 @@ func (bds *boltDataStore) SetJob(collection string, job *jm.Job) error {
 	return tx.Commit()
 }
 
-func (bds *boltDataStore) DeleteJob(collection, jobID string) error {
+func (bds *boltDataStore) DeleteJob(collection, jobID string) (offset int64, err error) {
+	// To satisfy interface check. We are not maintaining any offset at boltdb
+	return 0, bds.deleteJob(collection, jobID)
+}
+
+func (bds *boltDataStore) deleteJob(collection, jobID string) error {
 	// Start the transaction.
 	tx, err := bds.db.Begin(true)
 	if err != nil {

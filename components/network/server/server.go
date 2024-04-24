@@ -73,7 +73,7 @@ func (s *server) GetJob(ctx context.Context, jd *jobmodels.JobFetchDetails) (*jo
 
 // SetJob adds the job to a time machine instance
 func (s *server) SetJob(ctx context.Context, jd *jobmodels.JobCreationDetails) (*jobmodels.JobCreationDetails, error) {
-	err := s.cp.SetJob(jd.Collection, &jobmodels.Job{
+	_, err := s.cp.SetJob(jd.Collection, &jobmodels.Job{
 		ID:        jd.ID,
 		TriggerMS: int(jd.TriggerTime),
 		Meta:      jd.Meta,
@@ -85,12 +85,13 @@ func (s *server) SetJob(ctx context.Context, jd *jobmodels.JobCreationDetails) (
 
 // DeleteJob will remove the job from time machine instance
 func (s *server) DeleteJob(ctx context.Context, jd *jobmodels.JobFetchDetails) (*jobmodels.Empty, error) {
-	return &jobmodels.Empty{}, s.cp.DeleteJob(jd.Collection, jd.ID)
+	_, err := s.cp.DeleteJob(jd.Collection, jd.ID)
+	return &jobmodels.Empty{}, err
 }
 
 // ReplicateSetJob is the same as SetJob. It is called only by the leader to replicate the job on the follower
 func (s *server) ReplicateSetJob(ctx context.Context, jd *jobmodels.JobCreationDetails) (*jobmodels.JobCreationDetails, error) {
-	err := s.cp.ReplicateSetJob(jd.Collection, &jobmodels.Job{
+	_, err := s.cp.ReplicateSetJob(jd.Collection, &jobmodels.Job{
 		ID:        jd.ID,
 		TriggerMS: int(jd.TriggerTime),
 		Meta:      jd.Meta,
@@ -102,7 +103,8 @@ func (s *server) ReplicateSetJob(ctx context.Context, jd *jobmodels.JobCreationD
 
 // ReplicateDeleteJob is the same as DeleteJobJob. It is called only by the leader to replicate the job on the follower
 func (s *server) ReplicateDeleteJob(ctx context.Context, jd *jobmodels.JobFetchDetails) (*jobmodels.Empty, error) {
-	return &jobmodels.Empty{}, s.cp.ReplicateDeleteJob(jd.Collection, jd.ID)
+	_, err := s.cp.ReplicateDeleteJob(jd.Collection, jd.ID)
+	return &jobmodels.Empty{}, err
 }
 
 // Health check

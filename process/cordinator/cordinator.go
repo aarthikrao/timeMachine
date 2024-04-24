@@ -75,18 +75,18 @@ func (cp *CordinatorProcess) GetJob(collection, jobID string) (*jm.Job, error) {
 	return conn.GetJob(collection, jobID)
 }
 
-func (cp *CordinatorProcess) SetJob(collection string, job *jm.Job) error {
+func (cp *CordinatorProcess) SetJob(collection string, job *jm.Job) (offset int64, err error) {
 	if collection == "" {
-		return ErrInvalidDetails
+		return 0, ErrInvalidDetails
 	}
 
 	if err := job.Valid(); err != nil {
-		return err
+		return 0, err
 	}
 
 	shardLoc, err := cp.dhtMgr.GetShard(job.ID)
 	if err != nil {
-		return err
+		return 0, err
 	}
 
 	if shardLoc.Leader != cp.selfNodeID {
@@ -94,52 +94,52 @@ func (cp *CordinatorProcess) SetJob(collection string, job *jm.Job) error {
 		// Forward this request to the right owner
 		conn, err := cp.nodeMgr.GetRemoteConnection(shardLoc.Leader)
 		if err != nil {
-			return err
+			return 0, err
 		}
 
-		err = conn.SetJob(collection, job)
+		offset, err = conn.SetJob(collection, job)
 		if err != nil {
-			return err
+			return 0, err
 		}
 
 		// No more processing in this node
-		return nil
+		return offset, err
 	}
 
 	// This means this node is the leader for this shard, we need to process the write request
 	shard, err := cp.nodeMgr.GetLocalShard(shardLoc.ID)
 	if err != nil {
-		return err
+		return 0, err
 	}
-	err = shard.SetJob(collection, job)
+	offset, err = shard.SetJob(collection, job)
 	if err != nil {
-		return err
+		return 0, err
 	}
 
 	// Now we set the job in all the follower shards
 	for _, follower := range shardLoc.Followers {
 		conn, err := cp.nodeMgr.GetRemoteConnection(follower)
 		if err != nil {
-			return err
+			return 0, err
 		}
 
-		err = conn.ReplicateSetJob(collection, job)
+		_, err = conn.ReplicateSetJob(collection, job)
 		if err != nil {
-			return err
+			return 0, err
 		}
 	}
 
-	return nil
+	return offset, nil
 }
 
-func (cp *CordinatorProcess) DeleteJob(collection, jobID string) error {
+func (cp *CordinatorProcess) DeleteJob(collection, jobID string) (offset int64, err error) {
 	if collection == "" || jobID == "" {
-		return ErrInvalidDetails
+		return 0, ErrInvalidDetails
 	}
 
 	shardLoc, err := cp.dhtMgr.GetShard(jobID)
 	if err != nil {
-		return err
+		return 0, err
 	}
 
 	if shardLoc.Leader != cp.selfNodeID {
@@ -147,79 +147,79 @@ func (cp *CordinatorProcess) DeleteJob(collection, jobID string) error {
 		// Forward this request to the right owner
 		conn, err := cp.nodeMgr.GetRemoteConnection(shardLoc.Leader)
 		if err != nil {
-			return err
+			return 0, err
 		}
 
-		err = conn.DeleteJob(collection, jobID)
+		offset, err = conn.DeleteJob(collection, jobID)
 		if err != nil {
-			return err
+			return 0, err
 		}
 
 		// No more processing in this node
-		return nil
+		return offset, nil
 	}
 
 	// This means this node is the leader for this shard, we need to process the write request
 	shard, err := cp.nodeMgr.GetLocalShard(shardLoc.ID)
 	if err != nil {
-		return err
+		return 0, err
 	}
-	err = shard.DeleteJob(collection, jobID)
+	offset, err = shard.DeleteJob(collection, jobID)
 	if err != nil {
-		return err
+		return 0, err
 	}
 
 	// Now we set the job in all the follower shards
 	for _, follower := range shardLoc.Followers {
 		conn, err := cp.nodeMgr.GetRemoteConnection(follower)
 		if err != nil {
-			return err
+			return 0, err
 		}
 
-		err = conn.ReplicateDeleteJob(collection, jobID)
+		_, err = conn.ReplicateDeleteJob(collection, jobID)
 		if err != nil {
-			return err
+			return 0, err
 		}
 	}
 
-	return nil
+	return offset, nil
 }
 
 // ReplicateSetJob can be only called from the master
-func (cp *CordinatorProcess) ReplicateSetJob(collection string, job *jm.Job) error {
+func (cp *CordinatorProcess) ReplicateSetJob(collection string, job *jm.Job) (offset int64, err error) {
 	shardLoc, err := cp.dhtMgr.GetShard(job.ID)
 	if err != nil {
-		return err
+		return 0, err
 	}
 
 	localFollowerSlot, err := cp.nodeMgr.GetLocalShard(shardLoc.ID)
 	if err != nil {
-		return errors.Wrap(err, "follower slot: ")
+		return 0, errors.Wrap(err, "follower slot: ")
 	}
 
-	if err := localFollowerSlot.SetJob(collection, job); err != nil {
-		return errors.Wrap(err, "follower slot: ")
+	if offset, err := localFollowerSlot.SetJob(collection, job); err != nil {
+		return offset, errors.Wrap(err, "follower slot: ")
 	}
 
-	return nil
+	return offset, nil
 }
 
-func (cp *CordinatorProcess) ReplicateDeleteJob(collection, jobID string) error {
+func (cp *CordinatorProcess) ReplicateDeleteJob(collection, jobID string) (offset int64, err error) {
 	shardLoc, err := cp.dhtMgr.GetShard(jobID)
 	if err != nil {
-		return err
+		return 0, err
 	}
 
 	localFollowerSlot, err := cp.nodeMgr.GetLocalShard(shardLoc.ID)
 	if err != nil {
-		return errors.Wrap(err, "follower slot: ")
+		return 0, errors.Wrap(err, "follower slot: ")
 	}
 
-	if err := localFollowerSlot.DeleteJob(collection, jobID); err != nil {
-		return errors.Wrap(err, "follower slot: ")
+	if offset, err := localFollowerSlot.DeleteJob(collection, jobID); err != nil {
+		return offset, errors.Wrap(err, "follower slot: ")
 	}
 
-	return nil
+	return offset, nil
 }
 
 func (cp *CordinatorProcess) Type() jobstore.JobStoreType {

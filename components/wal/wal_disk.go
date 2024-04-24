@@ -89,7 +89,7 @@ func (wm *walMiddleware) GetJob(collection, jobID string) (*jm.Job, error) {
 	return wm.next.GetJob(collection, jobID)
 }
 
-func (wm *walMiddleware) SetJob(collection string, job *jm.Job) error {
+func (wm *walMiddleware) SetJob(collection string, job *jm.Job) (offset int64, err error) {
 	by, err := job.ToBytes()
 	if err != nil {
 		errors.Wrap(err, "wal setjob job")
@@ -101,42 +101,49 @@ func (wm *walMiddleware) SetJob(collection string, job *jm.Job) error {
 		Operation:  SetLog,
 	}
 
-	if err := wm.makeEntry(le); err != nil {
-		return err
+	offset, err = wm.makeEntry(le)
+	if err != nil {
+		return 0, err
 	}
 
-	return wm.next.SetJob(collection, job)
+	_, err = wm.next.SetJob(collection, job)
+	if err != nil {
+		return offset, err
+	}
+
+	return offset, nil
 }
 
 func (wm *walMiddleware) Type() jobstore.JobStoreType {
 	return jobstore.WAL
 }
 
-func (wm *walMiddleware) DeleteJob(collection, jobID string) error {
+func (wm *walMiddleware) DeleteJob(collection, jobID string) (offset int64, err error) {
 	le := logEntry{
 		Data:       []byte(jobID),
 		Collection: collection,
 		Operation:  DeleteLog,
 	}
 
-	if err := wm.makeEntry(le); err != nil {
-		return err
+	offset, err = wm.makeEntry(le)
+	if err != nil {
+		return 0, err
 	}
 
-	return wm.next.DeleteJob(collection, jobID)
+	_, err = wm.next.DeleteJob(collection, jobID)
+	if err != nil {
+		return offset, err
+	}
+
+	return offset, nil
 }
 
-func (wm *walMiddleware) makeEntry(le logEntry) error {
+func (wm *walMiddleware) makeEntry(le logEntry) (offset int64, err error) {
 	// TODO: Optimise to msgPack later
 	entry, err := json.Marshal(le)
 	if err != nil {
 		errors.Wrap(err, "wal setjob entry")
 	}
 
-	_, err = wm.w.Write(entry)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return wm.w.Write(entry)
 }
