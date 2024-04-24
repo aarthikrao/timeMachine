@@ -16,6 +16,7 @@ We want to build a scalable, consistent, fault tolerant scheduler that is simple
 - **Storage**: We chose BBoltDB for its B-tree based implementation. This choice suits our need for efficient range scans. We're open to incorporating LSM based storage engine in the future.
 - **Encoding**: Data is stored in binary format, preferably using protobuf or message pack. This method offers compact storage and fast serialization/deserialization. Suggest if you have a better alternative
 - **Message passing and communication**: We are using gRPC. It is an efficient, high-performance framework that enables strong-typed interfaces for robust message passing between services. Its use of HTTP/2 allows for multiplexed streams, reducing latency and improving network communication. The strong-typed interfaces facilitate clearer, more reliable API contracts, enhancing developer productivity and system reliability.
+- **Caching**: We do not find the need to cache data because this is a write heavy database. Most of the reads that are performed against the data store are range based queries. We will however fetch the jobs that fall in the next minute bucket and schedule them all.
 
 ## 🦋 Data distribution
 

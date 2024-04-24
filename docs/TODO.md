@@ -4,7 +4,6 @@
 - [ ] node addition and migrate: APIs to manually realance the cluster incase of node addition
 - [ ] backup: To extract the data and save it for migration
 - [ ] Request loop detector
-- [ ] Health check
 - [ ] Expose important metrics over HTTP API
 - [ ] CLI tool for easily handling the APIs, CRUD for jobs etc
 - [ ] Config management 
