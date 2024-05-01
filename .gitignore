@@ -6,4 +6,5 @@
 
 # Ignore application sensitive data
 timeMachine
+timeMachineCli
 data/*

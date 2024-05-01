@@ -12,3 +12,4 @@ go test ./...
 
 # Build the binary from source
 go build -o timeMachine ./cmd/server
+go build -o timeMachineCli ./cmd/cli
