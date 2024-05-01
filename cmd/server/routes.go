@@ -40,6 +40,7 @@ func InitTimeMachineHttpServer(
 	cluster := r.Group("/cluster")
 	{
 		cluster.GET("", crh.GetStats)
+		cluster.GET("/servers", crh.GetConfigurations)
 		cluster.POST("/join", crh.Join)
 		cluster.POST("/remove", crh.Remove)
 		cluster.POST("/configure", crh.Configure)

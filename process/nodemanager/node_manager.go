@@ -92,6 +92,15 @@ func (nm *NodeManager) InitAppDHT(shards, replicas int) error {
 	return nm.cp.Apply(by)
 }
 
+func (nm *NodeManager) IsInitialised() error {
+	shards := nm.dhtMgr.GetAllShardsForNode(nm.selfNodeID)
+	if len(shards) > 0 {
+		return dht.ErrDHTAlreadyInitialised
+	}
+
+	return nil
+}
+
 // InitialiseNode will be called once the dht is initialised.
 // It will help setting up the connections and initialise the datastores
 func (nm *NodeManager) InitialiseNode() error {

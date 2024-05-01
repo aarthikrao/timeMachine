@@ -4,6 +4,7 @@ import "errors"
 
 var (
 	ErrDHTNotInitialised     = errors.New("dht is not initialised")
+	ErrDHTAlreadyInitialised = errors.New("dht is already initialised")
 	ErrReplicasLessThanNodes = errors.New("replicas are lesser than physical nodes")
 )
 

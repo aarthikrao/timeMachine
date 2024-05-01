@@ -41,6 +41,18 @@ func (crh *clusterRestHandler) GetStats(c *gin.Context) {
 	c.JSON(http.StatusOK, crh.cp.Stats())
 }
 
+func (crh *clusterRestHandler) GetConfigurations(c *gin.Context) {
+	cf, err := crh.cp.GetConfigurations()
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{
+		"servers": cf,
+		"leader":  crh.cp.GetLeaderAddress(),
+	})
+}
+
 func (crh *clusterRestHandler) Join(c *gin.Context) {
 	var cm clusterMessage
 	c.BindJSON(&cm)
@@ -123,6 +135,12 @@ func (crh *clusterRestHandler) Configure(c *gin.Context) {
 				"leader": crh.cp.GetLeaderAddress(),
 			},
 		)
+		return
+	}
+
+	if err := crh.nodeMgr.IsInitialised(); err != nil {
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		crh.log.Error("DHT is already initialised", zap.Error(err))
 		return
 	}
 
