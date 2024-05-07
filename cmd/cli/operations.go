@@ -9,6 +9,8 @@ import (
 	"net/http"
 )
 
+// Initialises fetches other server location from the seed node,
+// prints information regarding their health and the current leader
 func initialise(seedNode string) (leaderAddress string, err error) {
 	serverLocation, err := getOtherServerLocations(seedNode)
 	if err != nil {
@@ -42,6 +44,7 @@ func initialise(seedNode string) (leaderAddress string, err error) {
 	return getHTTPAddressFromRaft(serverLocation.Leader), nil
 }
 
+// returns the health of all the servers. Only looks for http status 200
 func getHealth(sr []ServerAddress) (health map[string]bool) {
 	health = make(map[string]bool)
 	for _, server := range sr {
@@ -61,6 +64,8 @@ func getHealth(sr []ServerAddress) (health map[string]bool) {
 	return health
 }
 
+// getOtherServerLocations returns the address of other timeMachine nodes.
+// It also fetches the information regarding the current leader node
 func getOtherServerLocations(seedNode string) (*ServerLocation, error) {
 	resp, err := http.Get(fmt.Sprintf("http://%s/cluster/servers", seedNode))
 	if err != nil {
@@ -87,6 +92,7 @@ func getOtherServerLocations(seedNode string) (*ServerLocation, error) {
 	return &sr, nil
 }
 
+// Configure command to initilise the number of shards and replicas
 func configure(shards, replicas int) error {
 	// Define the data structure to be converted to JSON
 	data := struct {

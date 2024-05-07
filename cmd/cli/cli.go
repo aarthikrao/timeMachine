@@ -5,8 +5,8 @@ import (
 	"os"
 
 	"github.com/common-nighthawk/go-figure"
+	"github.com/desertbit/grumble"
 	"github.com/fatih/color"
-	"github.com/spencerdodd/grumble"
 )
 
 var (

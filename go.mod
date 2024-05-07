@@ -6,6 +6,7 @@ require (
 	github.com/aarthikrao/wal v0.0.8
 	github.com/cespare/xxhash/v2 v2.2.0
 	github.com/common-nighthawk/go-figure v0.0.0-20210622060536-734e95fb86be
+	github.com/desertbit/grumble v1.1.3
 	github.com/fatih/color v1.16.0
 	github.com/gin-contrib/cors v1.4.0
 	github.com/gin-gonic/gin v1.9.1
@@ -13,7 +14,6 @@ require (
 	github.com/hashicorp/raft-boltdb/v2 v2.2.2
 	github.com/pkg/errors v0.8.1
 	github.com/rodaine/table v1.2.0
-	github.com/spencerdodd/grumble v1.0.9
 	github.com/vmihailenco/msgpack/v5 v5.3.5
 	go.etcd.io/bbolt v1.3.6
 	go.uber.org/zap v1.25.0
