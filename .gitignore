@@ -7,4 +7,5 @@
 # Ignore application sensitive data
 timeMachine
 timeMachineCli
+tester
 data/*

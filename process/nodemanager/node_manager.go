@@ -187,6 +187,7 @@ func (nm *NodeManager) executeJobs() error {
 			return err
 		}
 
+		nm.log.Info("Fetched jobs", zap.Any("jobs", jobs))
 		for _, j := range jobs {
 			nm.exe.Run(*j)
 		}
