@@ -28,12 +28,7 @@ type Executor interface {
 	// If the job is not queued, it will return ErrJobNotFound
 	Delete(jobID string) error
 
-	DispatchQueue
-}
+	JobCh() chan *jm.Job
 
-type DispatchQueue interface {
-	// Next, returns next dispatched job
-	// It won't block if dispatch queue is empty
-	// Returns true if job is populated in given pointer
-	Next(*jm.Job) bool
+	Close()
 }

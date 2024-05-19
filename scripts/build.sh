@@ -13,4 +13,4 @@ go test ./...
 # Build the binary from source
 go build -o timeMachine ./cmd/server
 go build -o timeMachineCli ./cmd/cli
-go build -o tester ./cmd/tester
+go build -o tester ./cmd/integrationtest

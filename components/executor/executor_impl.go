@@ -1,7 +1,6 @@
 package executor
 
 import (
-	"container/list"
 	"sync"
 	"time"
 
@@ -16,16 +15,16 @@ type jobEntry struct {
 	job     *jobmodels.Job
 }
 type executorImpl struct {
-	rw            *sync.Mutex
-	jobs          map[string]jobEntry
-	dispatchQueue *list.List
+	rw    *sync.Mutex
+	jobs  map[string]jobEntry
+	jobCh chan *jobmodels.Job
 }
 
 func NewExecutor() Executor {
 	return &executorImpl{
-		rw:            new(sync.Mutex),
-		jobs:          make(map[string]jobEntry),
-		dispatchQueue: list.New(),
+		rw:    new(sync.Mutex),
+		jobs:  make(map[string]jobEntry),
+		jobCh: make(chan *jobmodels.Job, 100),
 	}
 }
 
@@ -72,6 +71,14 @@ func (e *executorImpl) Delete(jobId string) error {
 	return ErrJobNotFound
 }
 
+func (e *executorImpl) JobCh() chan *jobmodels.Job {
+	return e.jobCh
+}
+
+func (e *executorImpl) Close() {
+	close(e.jobCh)
+}
+
 func (e *executorImpl) scheduleJob(jobId string, version int, triggerTime time.Time) {
 
 	time.AfterFunc(time.Until(triggerTime), func() {
@@ -89,25 +96,10 @@ func (e *executorImpl) scheduleJob(jobId string, version int, triggerTime time.T
 		} else if entry.version == version {
 			// latest job version
 			delete(e.jobs, jobId)
-			e.dispatchQueue.PushBack(entry.job)
+
+			e.jobCh <- entry.job
 		}
-
 	})
-
-}
-
-func (e *executorImpl) Next(job *jobmodels.Job) bool {
-	if job == nil {
-		return false
-	}
-	e.rw.Lock()
-	defer e.rw.Unlock()
-	if ele := e.dispatchQueue.Front(); ele != nil {
-		e.dispatchQueue.Remove(ele)
-		*job = *ele.Value.(*jobmodels.Job)
-		return true
-	}
-	return false
 }
 
 func getTriggerTime(job jobmodels.Job) time.Time {

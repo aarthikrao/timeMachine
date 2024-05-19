@@ -83,7 +83,7 @@ func (t *Tester) createRoute() {
 	// Create a route
 	route := routemodels.Route{
 		ID:         TesterRoute,
-		Type:       routemodels.REST,
+		Type:       routemodels.Http,
 		WebhookURL: "http://localhost:4000/callback",
 	}
 
