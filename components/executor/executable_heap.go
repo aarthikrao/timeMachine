@@ -45,7 +45,7 @@ func (jq *jobHeap) Push(x any) {
 
 	// Oh! We reached at the tip of entries
 	// need to expand underlying array
-	// TODO: We should squeeze this slice it's idle and underutilised
+	// TODO: We should squeeze this slice if it's idle and underutilised
 	if jq.length+1 < len(jq.entries) {
 		jq.entries = append(jq.entries, item)
 	} else {
