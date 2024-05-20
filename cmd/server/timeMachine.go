@@ -15,6 +15,7 @@ import (
 	"github.com/aarthikrao/timeMachine/components/executor"
 	"github.com/aarthikrao/timeMachine/components/network/server"
 	"github.com/aarthikrao/timeMachine/components/routestore"
+	"github.com/aarthikrao/timeMachine/models/jobmodels"
 	"github.com/aarthikrao/timeMachine/process/clusterhealth"
 	"github.com/aarthikrao/timeMachine/process/connectionmanager"
 	"github.com/aarthikrao/timeMachine/process/cordinator"
@@ -58,7 +59,8 @@ func main() {
 		rStore      *routestore.RouteStore               = routestore.InitRouteStore()
 		dsmgr       *dsm.DataStoreManager                = dsm.CreateDataStore(boltDataDir, log)
 		connMgr     *connectionmanager.ConnectionManager = connectionmanager.CreateConnectionManager(log, 10*time.Second) // TODO: Add to config
-		exe         executor.Executor                    = executor.NewExecutor()
+		jobChannel                                       = make(chan *jobmodels.Job)
+		exe         executor.Executor                    = executor.NewExecutor(jobChannel)
 		httpClient  *httpclient.HTTPClient               = httpclient.NewHTTPClient(10*time.Second, 5)
 		kafkaClient *kafkaclient.KafkaClient             = kafkaclient.NewKafkaClient()
 	)
@@ -67,7 +69,7 @@ func main() {
 		httpClient,
 		kafkaClient,
 		rStore,
-		exe.JobCh(),
+		jobChannel,
 		10, // TODO: Add to config
 		log)
 
