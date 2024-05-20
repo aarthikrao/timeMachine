@@ -20,7 +20,10 @@ import (
 	"github.com/aarthikrao/timeMachine/process/cordinator"
 	dsm "github.com/aarthikrao/timeMachine/process/datastoremanager"
 	"github.com/aarthikrao/timeMachine/process/nodemanager"
+	"github.com/aarthikrao/timeMachine/process/publisher"
 	"github.com/aarthikrao/timeMachine/utils/constants"
+	"github.com/aarthikrao/timeMachine/utils/httpclient"
+	"github.com/aarthikrao/timeMachine/utils/kafkaclient"
 	"go.uber.org/zap"
 )
 
@@ -51,12 +54,22 @@ func main() {
 
 	var (
 		// appDht will store the distributed hash table of this node
-		appDht  dht.DHT                              = dht.Create()
-		rStore  *routestore.RouteStore               = routestore.InitRouteStore()
-		dsmgr   *dsm.DataStoreManager                = dsm.CreateDataStore(boltDataDir, log)
-		connMgr *connectionmanager.ConnectionManager = connectionmanager.CreateConnectionManager(log, 10*time.Second) // TODO: Add to config
-		exe     executor.Executor                    = executor.NewExecutor()
+		appDht      dht.DHT                              = dht.Create()
+		rStore      *routestore.RouteStore               = routestore.InitRouteStore()
+		dsmgr       *dsm.DataStoreManager                = dsm.CreateDataStore(boltDataDir, log)
+		connMgr     *connectionmanager.ConnectionManager = connectionmanager.CreateConnectionManager(log, 10*time.Second) // TODO: Add to config
+		exe         executor.Executor                    = executor.NewExecutor()
+		httpClient  *httpclient.HTTPClient               = httpclient.NewHTTPClient(10*time.Second, 5)
+		kafkaClient *kafkaclient.KafkaClient             = kafkaclient.NewKafkaClient()
 	)
+
+	pubRouter := publisher.NewPublisher(
+		httpClient,
+		kafkaClient,
+		rStore,
+		exe.JobCh(),
+		10, // TODO: Add to config
+		log)
 
 	// Initialise the FSM store
 	fsmStore := fsm.NewConfigFSM(
@@ -155,6 +168,8 @@ func main() {
 	<-quit
 
 	srv.Shutdown(context.Background())
+	exe.Close()
+	pubRouter.Wait()
 	grpcServer.Close()
 
 	log.Info("shutdown completed")
