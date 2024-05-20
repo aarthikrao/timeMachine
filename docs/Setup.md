@@ -49,6 +49,15 @@ This script uses `jq` command to format json output.
 
 If you check the cluster status before [forming a cluster](#create-a-cluster), you will find that all the nodes we spawned are leaders in bootstrap mode
 
+### Configure the startup params
+
+* `slot_per_node_count` : Specify the number of slots per node. This will decide the slots in each node to create the DHT. Required only for the first time. 
+
+```bash
+❯ # ./scripts/configure.sh slot_per_node_count
+❯ ./scripts/configure.sh 4
+```
+
 ### Kill all nodes
 ```bash
 pkill -f ./timeMachine

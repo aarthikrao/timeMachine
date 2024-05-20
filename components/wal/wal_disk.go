@@ -30,12 +30,12 @@ type logEntry struct {
 type walMiddleware struct {
 	w *wal.WriteAheadLog
 
-	next jobstore.JobStore
+	next jobstore.JobFetcher
 }
 
 // Compile time interface check
-var _ jobstore.JobStoreConn = &walMiddleware{}
-var _ WALReader = &walMiddleware{}
+var _ jobstore.JobStoreDisk = (*walMiddleware)(nil)
+var _ WALReader = (*walMiddleware)(nil)
 
 // InitaliseWriteAheadLog returns a instance of WAL on disk
 func InitaliseWriteAheadLog(
@@ -43,7 +43,7 @@ func InitaliseWriteAheadLog(
 	maxLogSize int64,
 	maxSegments int,
 	log *zap.Logger,
-	next jobstore.JobStore,
+	next jobstore.JobFetcher,
 ) (*walMiddleware, error) {
 	w, err := wal.NewWriteAheadLog(&wal.WALOptions{
 		LogDir:            walDir,
@@ -74,7 +74,14 @@ func (d *walMiddleware) GetLatestOffset() int64 {
 
 // Close safely closes the WAL. All the data is persisted in WAL before closing
 func (d *walMiddleware) Close() error {
-	return d.w.Close()
+	d.w.Close()
+	return d.next.Close()
+}
+
+func (d *walMiddleware) FetchJobForBucket(minute int) ([]*jm.Job, error) {
+	// This is just a dummy method. There is no implementation from wal side.
+	// It only calls the fetch from next object
+	return d.next.FetchJobForBucket(minute)
 }
 
 func (wm *walMiddleware) GetJob(collection, jobID string) (*jm.Job, error) {
@@ -82,7 +89,7 @@ func (wm *walMiddleware) GetJob(collection, jobID string) (*jm.Job, error) {
 	return wm.next.GetJob(collection, jobID)
 }
 
-func (wm *walMiddleware) SetJob(collection string, job *jm.Job) error {
+func (wm *walMiddleware) SetJob(collection string, job *jm.Job) (offset int64, err error) {
 	by, err := job.ToBytes()
 	if err != nil {
 		errors.Wrap(err, "wal setjob job")
@@ -94,42 +101,49 @@ func (wm *walMiddleware) SetJob(collection string, job *jm.Job) error {
 		Operation:  SetLog,
 	}
 
-	if err := wm.makeEntry(le); err != nil {
-		return err
+	offset, err = wm.makeEntry(le)
+	if err != nil {
+		return 0, err
 	}
 
-	return wm.next.SetJob(collection, job)
+	_, err = wm.next.SetJob(collection, job)
+	if err != nil {
+		return offset, err
+	}
+
+	return offset, nil
 }
 
 func (wm *walMiddleware) Type() jobstore.JobStoreType {
 	return jobstore.WAL
 }
 
-func (wm *walMiddleware) DeleteJob(collection, jobID string) error {
+func (wm *walMiddleware) DeleteJob(collection, jobID string) (offset int64, err error) {
 	le := logEntry{
 		Data:       []byte(jobID),
 		Collection: collection,
 		Operation:  DeleteLog,
 	}
 
-	if err := wm.makeEntry(le); err != nil {
-		return err
+	offset, err = wm.makeEntry(le)
+	if err != nil {
+		return 0, err
 	}
 
-	return wm.next.DeleteJob(collection, jobID)
+	_, err = wm.next.DeleteJob(collection, jobID)
+	if err != nil {
+		return offset, err
+	}
+
+	return offset, nil
 }
 
-func (wm *walMiddleware) makeEntry(le logEntry) error {
+func (wm *walMiddleware) makeEntry(le logEntry) (offset int64, err error) {
 	// TODO: Optimise to msgPack later
 	entry, err := json.Marshal(le)
 	if err != nil {
 		errors.Wrap(err, "wal setjob entry")
 	}
 
-	_, err = wm.w.Write(entry)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return wm.w.Write(entry)
 }

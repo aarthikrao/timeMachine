@@ -31,7 +31,7 @@ const (
 	raftLogCacheSize = 512
 )
 
-var _ Consensus = &raftConsensus{}
+var _ Consensus = (*raftConsensus)(nil)
 
 type raftConsensus struct {
 	raft *raft.Raft

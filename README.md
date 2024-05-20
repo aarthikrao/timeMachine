@@ -29,6 +29,9 @@ The idea is to build it with a storage layer based on B+tree implementation, dis
 # Create a cluster
 ❯ ./scripts/join.sh 5
 
+# Specify the slots per node
+❯ ./scripts/configure.sh 4
+
 # Check status
 ❯ ./scripts/status.sh 5
 ```

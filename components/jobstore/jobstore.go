@@ -10,31 +10,41 @@ import (
 type JobStoreType string
 
 const (
-	Database JobStoreType = "db"
-	WAL      JobStoreType = "wal"
-	Network  JobStoreType = "network"
-	Client   JobStoreType = "client"
+	Database   JobStoreType = "db"
+	WAL        JobStoreType = "wal"
+	Network    JobStoreType = "network"
+	Cordinator JobStoreType = "client"
 )
 
 // JobStore methods that are used to store and retrieve data across disk and network
 type JobStore interface {
 	GetJob(collection, jobID string) (*jm.Job, error)
-	SetJob(collection string, job *jm.Job) error
-	DeleteJob(collection, jobID string) error
+	SetJob(collection string, job *jm.Job) (offset int64, err error)
+	DeleteJob(collection, jobID string) (offset int64, err error)
 
 	Type() JobStoreType
 }
 
+// JobStoreDisk is a variant of JobStore that encapsulates Close() method
+type JobStoreDisk interface {
+	JobStore
+	Close() error
+}
+
 // JobFetcher is used to fetch the jobs for executing them
 type JobFetcher interface {
-	JobStore
+	JobStoreDisk
 
 	// FetchJobForBucket is used to fetch all the jobs in the datastore till the provided time
 	FetchJobForBucket(minute int) ([]*jm.Job, error)
 }
 
-// JobStoreConn is a variant of JobStore that encapsulates Close() method
-type JobStoreConn interface {
+// JobStoreWithReplicator adds replicate methods on top of JobStore interface
+// This will be used by remote connections with need to replicate the data, check health etc.
+type JobStoreWithReplicator interface {
 	JobStore
-	Close() error
+
+	ReplicateSetJob(collection string, job *jm.Job) (offset int64, err error)
+	ReplicateDeleteJob(collection, jobID string) (offset int64, err error)
+	HealthCheck() (bool, error)
 }

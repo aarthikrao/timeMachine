@@ -8,6 +8,7 @@ import (
 
 var (
 	ErrJobNotFound = errors.New("job not found")
+	ErrToLate      = errors.New("too late")
 )
 
 // Executor queues the jobs and runs them one by one.
@@ -26,4 +27,10 @@ type Executor interface {
 	// Delete deletes the queued job.
 	// If the job is not queued, it will return ErrJobNotFound
 	Delete(jobID string) error
+
+	// JobCh returns the channel used to receive jobs.
+	JobCh() chan *jm.Job
+
+	// Close closes the executor and waits for all the jobs to finish executing.
+	Close()
 }

@@ -3,37 +3,45 @@ package main
 import (
 	"context"
 	"flag"
+	"fmt"
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/aarthikrao/timeMachine/components/consensus"
 	"github.com/aarthikrao/timeMachine/components/consensus/fsm"
 	"github.com/aarthikrao/timeMachine/components/dht"
+	"github.com/aarthikrao/timeMachine/components/executor"
 	"github.com/aarthikrao/timeMachine/components/network/server"
 	"github.com/aarthikrao/timeMachine/components/routestore"
-	"github.com/aarthikrao/timeMachine/process/client"
+	"github.com/aarthikrao/timeMachine/process/clusterhealth"
 	"github.com/aarthikrao/timeMachine/process/connectionmanager"
+	"github.com/aarthikrao/timeMachine/process/cordinator"
 	dsm "github.com/aarthikrao/timeMachine/process/datastoremanager"
 	"github.com/aarthikrao/timeMachine/process/nodemanager"
+	"github.com/aarthikrao/timeMachine/process/publisher"
 	"github.com/aarthikrao/timeMachine/utils/constants"
+	"github.com/aarthikrao/timeMachine/utils/httpclient"
+	"github.com/aarthikrao/timeMachine/utils/kafkaclient"
 	"go.uber.org/zap"
 )
 
 // Input flags
 var (
-	nodeID    = flag.String("nodeID", "", "Raft nodeID of this node. Must be unique across cluster")
+	nodeID    = flag.String("nodeID", "node1", "Raft nodeID of this node. Must be unique across cluster")
 	dataDir   = flag.String("datadir", "data", "Provide the data directory without trailing '/'")
 	raftPort  = flag.Int("raftPort", 8101, "raft listening port")
 	httpPort  = flag.Int("httpPort", 8001, "http listening port")
-	bootstrap = flag.Bool("bootstrap", false, "Should be `true` for the first node of the cluster")
+	bootstrap = flag.Bool("bootstrap", false, "Bootstrap mode. Should be `true` for the first node of the cluster")
 )
 
 func main() {
 	flag.Parse()
 	if *nodeID == "" || *dataDir == "" || *raftPort == 0 {
+		fmt.Println("Usage:", "\n", "Example: ./timeMachine --nodeID=node1 --raftPort=8101 --httpPort=8001 --bootstrap=true")
 		flag.PrintDefaults()
-		panic("Invalid flags. try: ./timeMachine --nodeID=node1 --raftPort=8101 --httpPort=8001 --bootstrap=true")
+		os.Exit(1)
 	}
 
 	// Prepare data and raft folder
@@ -46,11 +54,22 @@ func main() {
 
 	var (
 		// appDht will store the distributed hash table of this node
-		appDht  dht.DHT                              = dht.Create()
-		rStore  *routestore.RouteStore               = routestore.InitRouteStore()
-		dsmgr   *dsm.DataStoreManager                = dsm.CreateDataStore(boltDataDir, log)
-		connMgr *connectionmanager.ConnectionManager = connectionmanager.CreateConnectionManager(log)
+		appDht      dht.DHT                              = dht.Create()
+		rStore      *routestore.RouteStore               = routestore.InitRouteStore()
+		dsmgr       *dsm.DataStoreManager                = dsm.CreateDataStore(boltDataDir, log)
+		connMgr     *connectionmanager.ConnectionManager = connectionmanager.CreateConnectionManager(log, 10*time.Second) // TODO: Add to config
+		exe         executor.Executor                    = executor.NewExecutor()
+		httpClient  *httpclient.HTTPClient               = httpclient.NewHTTPClient(10*time.Second, 5)
+		kafkaClient *kafkaclient.KafkaClient             = kafkaclient.NewKafkaClient()
 	)
+
+	pubRouter := publisher.NewPublisher(
+		httpClient,
+		kafkaClient,
+		rStore,
+		exe.JobCh(),
+		10, // TODO: Add to config
+		log)
 
 	// Initialise the FSM store
 	fsmStore := fsm.NewConfigFSM(
@@ -80,6 +99,7 @@ func main() {
 		connMgr,
 		appDht,
 		raft,
+		exe,
 		log,
 	)
 
@@ -88,10 +108,12 @@ func main() {
 	fsmStore.SetChangeHandler(nodeMgr.InitialiseNode)
 
 	// Initialise process
-	clientProcess := client.CreateClientProcess(
+	cordinatorProcess := cordinator.CreateCordinatorProcess(
+		*nodeID,
 		nodeMgr,
 		rStore,
 		raft,
+		appDht,
 		log,
 	)
 
@@ -108,8 +130,17 @@ func main() {
 		log.Warn("NodeVsSlot and datastores not yet initialised. Consider rebalancing the cluster once started")
 	}
 
+	clusterhealth.CreateClusterHealthChecker(
+		appDht,
+		raft,
+		connMgr,
+		10*time.Second, // TODO: Move to config
+		2,
+		log,
+	)
+
 	srv := InitTimeMachineHttpServer(
-		clientProcess,
+		cordinatorProcess,
 		appDht,
 		raft,
 		nodeMgr,
@@ -121,7 +152,7 @@ func main() {
 	// Start the GRPC server
 	grpcPort := *raftPort + constants.GRPCPortAdd
 	grpcServer := server.InitServer(
-		clientProcess,
+		cordinatorProcess,
 		grpcPort,
 		log,
 	)
@@ -137,6 +168,8 @@ func main() {
 	<-quit
 
 	srv.Shutdown(context.Background())
+	exe.Close()
+	pubRouter.Wait()
 	grpcServer.Close()
 
 	log.Info("shutdown completed")

@@ -159,13 +159,8 @@ func (c *ConfigFSM) SetChangeHandler(fn func() error) {
 // Called when there is a change in node vs slot change.
 // Assume that the state of node has changed and re-init everything
 func (c *ConfigFSM) handleSlotNodeChange(cs *ConfigSnapshot) {
-
 	// Re-initialise the DHT
-	err := c.dht.Load(cs.Slots)
-	if err != nil {
-		c.log.Error("Unable to load dht in FSM", zap.Any("cs", cs), zap.Error(err))
-		return
-	}
+	c.dht.Load(cs.Shards)
 
 	// Update the connections
 	c.onChangeHandler()

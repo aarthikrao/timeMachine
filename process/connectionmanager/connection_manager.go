@@ -1,7 +1,9 @@
 package connectionmanager
 
 import (
+	"context"
 	"sync"
+	"time"
 
 	"github.com/aarthikrao/timeMachine/components/dht"
 	js "github.com/aarthikrao/timeMachine/components/jobstore"
@@ -9,6 +11,7 @@ import (
 	"github.com/pkg/errors"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 )
 
 var (
@@ -25,7 +28,7 @@ type timeMachineConnection struct {
 	grpcConn *grpc.ClientConn
 
 	// All the clients
-	jobStore js.JobStore
+	jobStore js.JobStoreWithReplicator
 }
 
 type ConnectionManager struct {
@@ -34,24 +37,32 @@ type ConnectionManager struct {
 	tmcMap map[dht.NodeID]*timeMachineConnection
 	mu     sync.RWMutex
 
+	rpcTimeout time.Duration
+
 	log *zap.Logger
 }
 
 // CreateConnectionManager returns the connection manager
 // It does not initialise the connections. This will have to be done
 // by using the AddNewConnection
-func CreateConnectionManager(log *zap.Logger) *ConnectionManager {
+func CreateConnectionManager(log *zap.Logger, rpcTimeout time.Duration) *ConnectionManager {
 	return &ConnectionManager{
-		log:    log,
-		tmcMap: make(map[dht.NodeID]*timeMachineConnection),
+		log:        log,
+		tmcMap:     make(map[dht.NodeID]*timeMachineConnection),
+		rpcTimeout: rpcTimeout,
 	}
 }
 
 // connects to the provided nodeID.
 func (cm *ConnectionManager) connect(nodeID dht.NodeID, addr string) error {
-	conn, err := grpc.Dial(addr,
-		grpc.WithInsecure(),
+	ctx, cancelFunc := context.WithTimeout(context.Background(), 10*time.Second)
+	conn, err := grpc.DialContext(
+		ctx,
+		addr,
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
 		grpc.WithBlock())
+
+	defer cancelFunc()
 
 	if err != nil {
 		return err
@@ -60,14 +71,14 @@ func (cm *ConnectionManager) connect(nodeID dht.NodeID, addr string) error {
 	cm.tmcMap[nodeID] = &timeMachineConnection{
 		address:  addr,
 		grpcConn: conn,
-		jobStore: network.CreateJobStoreClient(conn),
+		jobStore: network.CreateJobStoreClient(conn, cm.rpcTimeout),
 	}
 
 	return nil
 }
 
 // Adds new connection to the connection manager
-func (cm *ConnectionManager) AddNewConnection(serverID string, address string) error {
+func (cm *ConnectionManager) Add(serverID string, address string) error {
 	cm.mu.Lock()
 	defer cm.mu.Unlock()
 
@@ -83,7 +94,7 @@ func (cm *ConnectionManager) AddNewConnection(serverID string, address string) e
 }
 
 // GetJobStore returns an existing job store client
-func (cm *ConnectionManager) GetJobStore(nodeID dht.NodeID) (js.JobStore, error) {
+func (cm *ConnectionManager) GetJobStore(nodeID dht.NodeID) (js.JobStoreWithReplicator, error) {
 	cm.mu.RLock()
 	defer cm.mu.RUnlock()
 
@@ -92,6 +103,26 @@ func (cm *ConnectionManager) GetJobStore(nodeID dht.NodeID) (js.JobStore, error)
 	}
 
 	return nil, ErrNodeNotPresent
+}
+
+func (cm *ConnectionManager) GetHealthStatus() map[dht.NodeID]bool {
+	cm.mu.RLock()
+	defer cm.mu.RUnlock()
+
+	m := make(map[dht.NodeID]bool)
+
+	for nodeID, tmc := range cm.tmcMap {
+		healthy, err := tmc.jobStore.HealthCheck()
+		if err != nil {
+			cm.log.Error("Health check failed", zap.String("failedNode", string(nodeID)))
+			m[nodeID] = false
+			continue
+		}
+
+		m[nodeID] = healthy
+	}
+
+	return m
 }
 
 // Closes all the connections maintained by the connection manager

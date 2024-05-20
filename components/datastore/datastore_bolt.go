@@ -13,7 +13,7 @@ import (
 )
 
 // Compile time validation for jobstore interface
-var _ jStore.JobStoreConn = &boltDataStore{}
+var _ jStore.JobStoreDisk = (*boltDataStore)(nil)
 
 // scheduleCollection will contain all the schedules and will be used to fetch the minute wise jobs
 var scheduleCollection []byte = []byte("scheduleCollection")
@@ -34,7 +34,7 @@ type boltDataStore struct {
 	dbFilePath string
 }
 
-func CreateBoltDataStore(path string) (jStore.JobStoreConn, error) {
+func CreateBoltDataStore(path string) (jStore.JobFetcher, error) {
 	db, err := bolt.Open(path, 0666, nil)
 	if err != nil {
 		return nil, err
@@ -74,7 +74,13 @@ func (bds *boltDataStore) GetJob(collection, jobID string) (*jm.Job, error) {
 	return jm.GetJobFromBytes(val)
 }
 
-func (bds *boltDataStore) SetJob(collection string, job *jm.Job) error {
+// (offset int64, err error)
+func (bds *boltDataStore) SetJob(collection string, job *jm.Job) (offset int64, err error) {
+	// To satisfy interface check. We are not maintaining any offset at boltdb
+	return 0, bds.setJob(collection, job)
+}
+
+func (bds *boltDataStore) setJob(collection string, job *jm.Job) error {
 	by, err := job.ToBytes()
 	if err != nil {
 		return err
@@ -131,7 +137,12 @@ func (bds *boltDataStore) SetJob(collection string, job *jm.Job) error {
 	return tx.Commit()
 }
 
-func (bds *boltDataStore) DeleteJob(collection, jobID string) error {
+func (bds *boltDataStore) DeleteJob(collection, jobID string) (offset int64, err error) {
+	// To satisfy interface check. We are not maintaining any offset at boltdb
+	return 0, bds.deleteJob(collection, jobID)
+}
+
+func (bds *boltDataStore) deleteJob(collection, jobID string) error {
 	// Start the transaction.
 	tx, err := bds.db.Begin(true)
 	if err != nil {
@@ -198,7 +209,7 @@ func (bds *boltDataStore) Type() jobstore.JobStoreType {
 // FetchJobForBucket is used to fetch all the jobs in the datastore till the provided time
 func (bds *boltDataStore) FetchJobForBucket(minute int) ([]*jm.Job, error) {
 	// Start the transaction.
-	tx, err := bds.db.Begin(false)
+	tx, err := bds.db.Begin(true)
 	if err != nil {
 		return nil, err
 	}
