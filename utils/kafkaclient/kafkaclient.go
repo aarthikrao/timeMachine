@@ -2,9 +2,9 @@ package kafkaclient
 
 import (
 	"context"
-	"fmt"
 	"sync"
 
+	"github.com/pkg/errors"
 	"github.com/segmentio/kafka-go"
 )
 
@@ -40,7 +40,7 @@ func (kc *KafkaClient) Publish(kafkaHost, topic string, key []byte, value []byte
 
 	err = conn.WriteMessages(context.Background(), msg)
 	if err != nil {
-		return fmt.Errorf("failed to publish message: %w", err)
+		return errors.Wrap(err, "kafkaclient: failed to write message")
 	}
 
 	return nil
