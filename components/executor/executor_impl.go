@@ -1,10 +1,15 @@
 package executor
 
 import (
+	"errors"
 	"sync"
 	"time"
 
 	"github.com/aarthikrao/timeMachine/models/jobmodels"
+)
+
+var (
+	ErrExecutorIsClosed = errors.New("executor is closed")
 )
 
 type jobEntry struct {
@@ -18,6 +23,8 @@ type executorImpl struct {
 	rw    *sync.Mutex
 	jobs  map[string]jobEntry
 	jobCh chan *jobmodels.Job
+
+	isClosed bool
 }
 
 func NewExecutor() Executor {
@@ -29,6 +36,10 @@ func NewExecutor() Executor {
 }
 
 func (e *executorImpl) Run(job jobmodels.Job) error {
+	if e.isClosed {
+		return ErrExecutorIsClosed
+	}
+
 	var triggerTime = getTriggerTime(job)
 	if triggerTime.Before(time.Now()) {
 		return ErrToLate
@@ -42,6 +53,10 @@ func (e *executorImpl) Run(job jobmodels.Job) error {
 }
 
 func (e *executorImpl) Update(job jobmodels.Job) error {
+	if e.isClosed {
+		return ErrExecutorIsClosed
+	}
+
 	var triggerTime = getTriggerTime(job)
 	if triggerTime.Before(time.Now()) {
 		return ErrToLate
@@ -71,16 +86,27 @@ func (e *executorImpl) Delete(jobId string) error {
 	return ErrJobNotFound
 }
 
+// JobCh returns the channel used to receive jobs.
 func (e *executorImpl) JobCh() chan *jobmodels.Job {
 	return e.jobCh
 }
 
+// Close closes the executor and waits for all the jobs to finish executing.
 func (e *executorImpl) Close() {
+	e.rw.Lock()
+	defer e.rw.Unlock()
+
+	e.isClosed = true
+
+	// Wait for all the jobs to execute
+	for len(e.jobs) > 0 {
+		time.Sleep(1 * time.Second)
+	}
+
 	close(e.jobCh)
 }
 
 func (e *executorImpl) scheduleJob(jobId string, version int, triggerTime time.Time) {
-
 	time.AfterFunc(time.Until(triggerTime), func() {
 		e.rw.Lock()
 		defer e.rw.Unlock()

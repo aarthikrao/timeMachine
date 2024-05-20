@@ -28,7 +28,9 @@ type Executor interface {
 	// If the job is not queued, it will return ErrJobNotFound
 	Delete(jobID string) error
 
+	// JobCh returns the channel used to receive jobs.
 	JobCh() chan *jm.Job
 
+	// Close closes the executor and waits for all the jobs to finish executing.
 	Close()
 }
