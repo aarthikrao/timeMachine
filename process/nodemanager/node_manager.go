@@ -186,7 +186,7 @@ func (nm *NodeManager) executeJobs() error {
 		if err != nil {
 			return err
 		}
-
+		nm.exe.SetNextMin(int64(nextMinute))
 		nm.log.Debug("Fetched jobs", zap.Any("jobs", jobs))
 		for _, j := range jobs {
 			nm.exe.Run(*j)
