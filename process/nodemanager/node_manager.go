@@ -172,7 +172,7 @@ func (nm *NodeManager) GetRemoteConnection(nodeID dht.NodeID) (js.JobStoreWithRe
 	return nm.connMgr.GetJobStore(nodeID)
 }
 
-// Fetches the jobs fo the next minute and schedules it to the executor
+// Fetches the jobs for the next minute and schedules it to the executor
 func (nm *NodeManager) executeJobs() error {
 	for _, shardID := range nm.dhtMgr.GetLeaderShardsForNode(nm.selfNodeID) {
 		js, err := nm.dsmgr.GetDataNode(shardID)
@@ -186,8 +186,8 @@ func (nm *NodeManager) executeJobs() error {
 		if err != nil {
 			return err
 		}
-
-		nm.log.Info("Fetched jobs", zap.Any("jobs", jobs))
+		nm.exe.SetNextMin(int64(nextMinute))
+		nm.log.Debug("Fetched jobs", zap.Any("jobs", jobs))
 		for _, j := range jobs {
 			nm.exe.Run(*j)
 		}
