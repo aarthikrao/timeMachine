@@ -1,6 +1,5 @@
 # TODO
 
-- [ ] Add `Route` store inside the FSM
 - [ ] node addition and migrate: APIs to manually realance the cluster incase of node addition
 - [ ] backup: To extract the data and save it for migration
 - [ ] Request loop detector
@@ -11,4 +10,7 @@
 - [ ] Delete/Update handling for executing jobs
 - [ ] Prometheus/ Open monitoring
 - [ ] Tunable consistency model to reduce latency
+- [ ] Checkpointing and state management
+- [ ] Wal replay
+- [ ] Add job to the executor if it lies within the next minute
 

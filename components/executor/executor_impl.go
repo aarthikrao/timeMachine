@@ -27,7 +27,7 @@ type executorImpl struct {
 	rw             *sync.Mutex
 	jobs           map[string]jobEntry
 	jobCh          chan<- *jobmodels.Job
-	jobQueue       jobQueue
+	jobQueue       JobQueue
 	isClosed       bool
 	stopDispatcher context.CancelFunc
 	wgDispacther   sync.WaitGroup
@@ -39,7 +39,7 @@ func NewExecutor(jobCh chan<- *jobmodels.Job) Executor {
 	impl := &executorImpl{
 		rw:       new(sync.Mutex),
 		jobs:     make(map[string]jobEntry),
-		jobQueue: &jobHeap{},
+		jobQueue: NewJobHeap(),
 		jobCh:    jobCh,
 	}
 	ctx, cancelFn := context.WithCancel(context.TODO())
@@ -57,15 +57,14 @@ func (e *executorImpl) Run(job jobmodels.Job) error {
 		return ErrExecutorIsClosed
 	}
 
-	var triggerTime = getTriggerTime(&job)
-	if triggerTime.Before(time.Now()) {
+	if job.GetTriggerTime().Before(time.Now()) {
 		return ErrToLate
 	}
 	var entry = jobEntry{job: &job}
 	e.rw.Lock()
 	e.jobs[job.ID] = entry
 	e.rw.Unlock()
-	e.jobQueue.addJob(&entry)
+	e.jobQueue.AddJob(&entry)
 	return nil
 }
 
@@ -74,8 +73,7 @@ func (e *executorImpl) Update(job jobmodels.Job) error {
 		return ErrExecutorIsClosed
 	}
 
-	var triggerTime = getTriggerTime(&job)
-	if triggerTime.Before(time.Now()) {
+	if job.GetTriggerTime().Before(time.Now()) {
 		return ErrToLate
 	}
 	e.rw.Lock()
@@ -88,7 +86,7 @@ func (e *executorImpl) Update(job jobmodels.Job) error {
 	entry.job = &job
 	e.jobs[job.ID] = entry
 	e.rw.Unlock()
-	e.jobQueue.addJob(&entry)
+	e.jobQueue.AddJob(&entry)
 	return nil
 }
 
@@ -149,17 +147,17 @@ func (e *executorImpl) dispatchJob(jentry *jobEntry) {
 
 func (e *executorImpl) dispatchUntil(untilFn timeCompareFn) {
 	for {
-		jentry := e.jobQueue.nextJob()
+		jentry := e.jobQueue.NextJob()
 		if jentry == nil {
 			return // We ran out of jobs
 		}
-		triggerTime := getTriggerTime(jentry.job)
-		if untilFn(triggerTime) {
+
+		if untilFn(jentry.job.GetTriggerTime()) {
 			e.dispatchJob(jentry)
 			continue
 		}
 		// Adding job back to the scheduler queue as it's ahead of current time
-		e.jobQueue.addJob(jentry)
+		e.jobQueue.AddJob(jentry)
 		break // We have processed jobs till current tick
 	}
 }
@@ -202,8 +200,4 @@ func (e *executorImpl) startDispatcher(ctx context.Context) {
 
 func (e *executorImpl) getEndOfNextMinute() time.Time {
 	return time.UnixMilli(60000 * (e.nextMin + 1))
-}
-
-func getTriggerTime(job *jobmodels.Job) time.Time {
-	return time.UnixMilli(int64(job.TriggerMS))
 }

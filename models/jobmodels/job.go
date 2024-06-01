@@ -4,8 +4,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"strconv"
+	"time"
 
-	"github.com/aarthikrao/timeMachine/utils/time"
+	timeUtils "github.com/aarthikrao/timeMachine/utils/time"
 )
 
 type Job struct {
@@ -21,7 +22,7 @@ func (j *Job) Valid() error {
 	if j.ID == "" {
 		return fmt.Errorf("invalid job id")
 	}
-	if j.TriggerMS < time.GetCurrentMillis() {
+	if j.TriggerMS < timeUtils.GetCurrentMillis() {
 		return fmt.Errorf("trigger_time is in the past")
 	}
 	if j.Route == "" {
@@ -66,4 +67,8 @@ func GetJobFromBytes(by []byte) (*Job, error) {
 	}
 
 	return &j, nil
+}
+
+func (job *Job) GetTriggerTime() time.Time {
+	return time.UnixMilli(int64(job.TriggerMS))
 }

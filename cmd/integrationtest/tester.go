@@ -41,7 +41,14 @@ type Tester struct {
 
 func main() {
 	count := flag.Int("c", 0, "number of jobs to create")
+	delay := flag.Int("d", 60000, "delay in milliseconds for job trigger time")
 	flag.Parse()
+
+	if count == nil || *count == 0 {
+		flag.PrintDefaults()
+		fmt.Println("Please provide a valid count")
+		os.Exit(1)
+	}
 
 	t := &Tester{
 		client: httpclient.NewHTTPClient(30*time.Second, 10),
@@ -56,7 +63,7 @@ func main() {
 				http.Error(w, err.Error(), http.StatusBadRequest)
 				return
 			}
-			fmt.Println("Recieved callback:", payload)
+			log.Println("Recieved callback:", payload)
 		})
 
 		err := http.ListenAndServe(":4000", nil)
@@ -68,8 +75,10 @@ func main() {
 	// Create a route
 	t.createRoute()
 
+	time.Sleep(2 * time.Second)
+
 	// Create jobs
-	t.createJobs(*count)
+	t.createJobs(*count, *delay)
 
 	fmt.Println("Listening for callbacks on port 4000... Press Ctrl + C to exit")
 
@@ -100,11 +109,11 @@ func (t *Tester) createRoute() {
 
 }
 
-func (t *Tester) createJobs(count int) {
+func (t *Tester) createJobs(count int, delayMS int) {
 	for i := 0; i < count; i++ {
 		var job jobmodels.Job = jobmodels.Job{
 			ID:        fmt.Sprintf("job-%d", i),
-			TriggerMS: timeUtils.GetCurrentMillis() + 61000,
+			TriggerMS: timeUtils.GetCurrentMillis() + delayMS,
 			Meta:      []byte(`{"foo": "bar"}`),
 			Route:     TesterRoute,
 		}
@@ -118,7 +127,7 @@ func (t *Tester) createJobs(count int) {
 			fmt.Println("Error creating job. Status code:", statusCode, string(by))
 			continue
 		}
-		fmt.Println("Created job", i, " : ", string(by))
+		fmt.Println("Created job", i, " : ", string(by), " with payload: ", job)
 	}
 	fmt.Printf("Created %d jobs...\n", count)
 }

@@ -46,6 +46,8 @@ func (jrh *jobRestHandler) SetJob(c *gin.Context) {
 		return
 	}
 
+	jrh.log.Debug("Job set", zap.String("collection", collection), zap.Any("job", job))
+
 	c.JSON(http.StatusOK, gin.H{
 		"status": "ok",
 		"offset": offset,
