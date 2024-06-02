@@ -9,14 +9,17 @@ We want to build a scalable, consistent, fault tolerant scheduler that is simple
 ## ⚙️ Design choices
 
 - **Node Discovery, Failure Detection, Membership Management**: We use the Raft consensus algorithm. Raft helps us manage cluster membership and detect failures efficiently, ensuring high availability.
-- **Data Replication, Consistency**: Our system is based on a partitioned master-slave architecture. It defaults to strong consistency, but allows for tunable consistency levels according to application needs.
+- **Data Replication, Consistency**: Our main usecase is to store jobs and ensure strong consistency. This means our system needs to be write heavy, the single read calls will be very minimal, and we have to partition the jobs into minute buckets. The system is based on a partitioned master-slave architecture. Currently it supports only strong consistency. We will add tunable consistency later.
+Strong consistency ensures these requirements
+    - Follower node can easily be promoted to leader incase of failover.
+    - Lesser chances of data conflicts between nodes
 - **Load Balancing, Data Partitioning**: We implement the hash shard algorithm for effective data partitioning and load balancing. This maked sure the trigger workload is spread throughout the entire cluster
 - **Rebalancing**: Due to its critical nature, rebalancing should be performed manually. These operations are supposed to be executed with care under low-traffic conditions
 - **Query Interface**: Currently, we offer a REST API for queries. We will support the Redis Serialization Protocol (RESP) in the future, catering to more use cases and improving efficiency.
 - **Storage**: We chose BBoltDB for its B-tree based implementation. This choice suits our need for efficient range scans. We're open to incorporating LSM based storage engine in the future.
 - **Encoding**: Data is stored in binary format, preferably using protobuf or message pack. This method offers compact storage and fast serialization/deserialization. Suggest if you have a better alternative
 - **Message passing and communication**: We are using gRPC. It is an efficient, high-performance framework that enables strong-typed interfaces for robust message passing between services. Its use of HTTP/2 allows for multiplexed streams, reducing latency and improving network communication. The strong-typed interfaces facilitate clearer, more reliable API contracts, enhancing developer productivity and system reliability.
-- **Caching**: We do not find the need to cache data because this is a write heavy database. Most of the reads that are performed against the data store are range based queries. We will however fetch the jobs that fall in the next minute bucket and schedule them all.
+- **Caching**: We do not find the need to cache data because this is a write heavy database. Most of the reads that are performed against the data store are range based queries. We will however fetch the jobs that fall in the next minute bucket and add them to the in memory executor. This way, we perform one read per shard per minute.
 
 ## 🦋 Data distribution
 
@@ -56,7 +59,7 @@ Refer [DHT component](./../components/dht/dht.md)
 
 Jobs can be created through our [Developer APIs](./DevAPI.md#create-a-job) by specifying a `trigger_time`, `route`, and optionally, `meta` information. Once created, the job is replicated across all shard replicas, including the leader and its followers, to ensure reliability and fault tolerance.
 
-When the specified `trigger_time` is reached, the shard leader retrieves the job and triggers it by sending a POST request to the webhook URL specified in the `route`. This ensures that the job is executed exactly at its scheduled time, maintaining the trigger's precision and reliability.
+When the specified `trigger_time` is reached, the shard leader retrieves the job and adds them to the in memory executor. The executor works on a heap data structure and effectively polls for the minimum trigger time every seconds. It then triggers the job by sending a POST request to the webhook URL specified in the `route`. This ensures that the job is executed exactly at its scheduled time, maintaining the trigger's precision and reliability.
 
 ### Routing Webhooks
 
