@@ -60,7 +60,7 @@ func main() {
 		dsmgr       *dsm.DataStoreManager                = dsm.CreateDataStore(boltDataDir, log)
 		connMgr     *connectionmanager.ConnectionManager = connectionmanager.CreateConnectionManager(log, 10*time.Second) // TODO: Add to config
 		jobChannel                                       = make(chan *jobmodels.Job)
-		exe         executor.Executor                    = executor.NewExecutor(jobChannel)
+		exe         executor.Executor                    = executor.NewExecutor(jobChannel, 2*time.Minute, 100*time.Millisecond)
 		httpClient  *httpclient.HTTPClient               = httpclient.NewHTTPClient(10*time.Second, 5)
 		kafkaClient *kafkaclient.KafkaClient             = kafkaclient.NewKafkaClient()
 	)

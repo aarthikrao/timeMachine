@@ -186,10 +186,10 @@ func (nm *NodeManager) executeJobs() error {
 		if err != nil {
 			return err
 		}
-		nm.exe.SetNextMin(int64(nextMinute))
+
 		for _, j := range jobs {
 			nm.log.Debug("Fetched job", zap.Any("job", j), zap.Int("nextMinute in sec", nextMinute*60000))
-			nm.exe.Run(*j)
+			nm.exe.AddToQueue(*j)
 		}
 
 	}

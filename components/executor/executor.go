@@ -16,13 +16,9 @@ var (
 // when it is queued in the memory.
 type Executor interface {
 
-	// SetNextMin sets next batch minute
-	// It will help us to execute all the jobs before termination
-	SetNextMin(min int64)
-
-	// Run adds the job to the execution queue.
-	// Internally it is added in a time.After function
-	Run(job jm.Job) error
+	// AddToQueue adds the job to the execution queue.
+	// When the job is ready to be executed, it will be sent to the job channel.
+	AddToQueue(job jm.Job) error
 
 	// Update updates the job details after the job is queued.
 	// If the job is not queued, it will return ErrJobNotFound

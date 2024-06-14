@@ -9,11 +9,10 @@ import (
 	bolt "go.etcd.io/bbolt"
 
 	"github.com/aarthikrao/timeMachine/components/jobstore"
-	jStore "github.com/aarthikrao/timeMachine/components/jobstore"
 )
 
 // Compile time validation for jobstore interface
-var _ jStore.JobStoreDisk = (*boltDataStore)(nil)
+var _ jobstore.JobStoreDisk = (*boltDataStore)(nil)
 
 // scheduleCollection will contain all the schedules and will be used to fetch the minute wise jobs
 var scheduleCollection []byte = []byte("scheduleCollection")
@@ -34,7 +33,7 @@ type boltDataStore struct {
 	dbFilePath string
 }
 
-func CreateBoltDataStore(path string) (jStore.JobFetcher, error) {
+func CreateBoltDataStore(path string) (jobstore.JobFetcher, error) {
 	db, err := bolt.Open(path, 0666, nil)
 	if err != nil {
 		return nil, err

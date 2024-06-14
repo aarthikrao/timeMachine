@@ -13,8 +13,6 @@ var (
 	ErrExecutorIsClosed = errors.New("executor is closed")
 )
 
-type timeCompareFn = func(time.Time) bool
-
 type jobEntry struct {
 	// deleted tells if job is deleted or not
 	deleted bool
@@ -22,25 +20,34 @@ type jobEntry struct {
 	version int
 	job     *jobmodels.Job
 }
+
 type executorImpl struct {
-	// rw: lock for jobs map
-	rw             *sync.Mutex
-	jobs           map[string]jobEntry
-	jobCh          chan<- *jobmodels.Job
+	mu   *sync.Mutex
+	jobs map[string]jobEntry
+
+	outboundJobs   chan<- *jobmodels.Job
 	jobQueue       JobQueue
 	isClosed       bool
 	stopDispatcher context.CancelFunc
 	wgDispacther   sync.WaitGroup
-	nextMin        int64
+	gracePeriod    time.Duration
+	accuracy       time.Duration
 }
 
-func NewExecutor(jobCh chan<- *jobmodels.Job) Executor {
+// NewExecutor creates a new executor that will start dispatching jobs
+// when the trigger time of the job is reached.
+//
+// `gracePeriod` is the time duration for which the executor will wait for the jobs to be executed during shutdown
+// before forcefully closing the executor.
+func NewExecutor(jobCh chan<- *jobmodels.Job, gracePeriod time.Duration, accuracy time.Duration) Executor {
 
 	impl := &executorImpl{
-		rw:       new(sync.Mutex),
-		jobs:     make(map[string]jobEntry),
-		jobQueue: NewJobHeap(),
-		jobCh:    jobCh,
+		mu:           new(sync.Mutex),
+		jobs:         make(map[string]jobEntry),
+		jobQueue:     NewJobHeap(),
+		outboundJobs: jobCh,
+		gracePeriod:  gracePeriod,
+		accuracy:     accuracy,
 	}
 	ctx, cancelFn := context.WithCancel(context.TODO())
 	impl.stopDispatcher = cancelFn
@@ -48,11 +55,7 @@ func NewExecutor(jobCh chan<- *jobmodels.Job) Executor {
 	return impl
 }
 
-func (e *executorImpl) SetNextMin(min int64) {
-	e.nextMin = min
-}
-
-func (e *executorImpl) Run(job jobmodels.Job) error {
+func (e *executorImpl) AddToQueue(job jobmodels.Job) error {
 	if e.isClosed {
 		return ErrExecutorIsClosed
 	}
@@ -60,10 +63,15 @@ func (e *executorImpl) Run(job jobmodels.Job) error {
 	if job.GetTriggerTime().Before(time.Now()) {
 		return ErrToLate
 	}
-	var entry = jobEntry{job: &job}
-	e.rw.Lock()
+
+	var entry = jobEntry{
+		job: &job,
+	}
+
+	e.mu.Lock()
 	e.jobs[job.ID] = entry
-	e.rw.Unlock()
+	e.mu.Unlock()
+
 	e.jobQueue.AddJob(&entry)
 	return nil
 }
@@ -76,23 +84,25 @@ func (e *executorImpl) Update(job jobmodels.Job) error {
 	if job.GetTriggerTime().Before(time.Now()) {
 		return ErrToLate
 	}
-	e.rw.Lock()
+
+	e.mu.Lock()
 	entry, ok := e.jobs[job.ID]
 	if !ok {
-		e.rw.Unlock()
+		e.mu.Unlock()
 		return ErrJobNotFound
 	}
 	entry.version++ // increment version number
 	entry.job = &job
 	e.jobs[job.ID] = entry
-	e.rw.Unlock()
+	e.mu.Unlock()
 	e.jobQueue.AddJob(&entry)
 	return nil
 }
 
 func (e *executorImpl) Delete(jobId string) error {
-	e.rw.Lock()
-	defer e.rw.Unlock()
+	e.mu.Lock()
+	defer e.mu.Unlock()
+
 	entry, ok := e.jobs[jobId]
 	if ok {
 		entry.deleted = true
@@ -104,66 +114,72 @@ func (e *executorImpl) Delete(jobId string) error {
 
 // Close closes the executor and waits for all the jobs to finish executing.
 func (e *executorImpl) Close() {
-	e.rw.Lock()
-	defer e.rw.Unlock()
-
 	e.isClosed = true
 
-	// Stop dispatcher and wait for it to stop
-	e.stopDispatcher()
+	time.AfterFunc(e.gracePeriod, func() {
+		e.stopDispatcher()
+	})
+
 	e.wgDispacther.Wait()
 
 	// close dispatcher channel
 	// so that executor go-routines can terminate
-	close(e.jobCh)
+	close(e.outboundJobs)
 }
 
 func (e *executorImpl) dispatchJob(jentry *jobEntry) {
-	e.rw.Lock()
+	e.mu.Lock()
 	jobId := jentry.job.ID
 	entry, ok := e.jobs[jobId]
 	if !ok {
-		e.rw.Unlock()
+		e.mu.Unlock()
 		return // might be executed already
 	}
 
 	if entry.deleted {
 		// skip execution, job needs to be deleted
-		// delete from map
 		delete(e.jobs, jobId)
-		e.rw.Unlock()
+		e.mu.Unlock()
+
 	} else if entry.version == jentry.version {
 		// latest job version
 		delete(e.jobs, jobId)
-		e.rw.Unlock()
-		e.jobCh <- entry.job
+		e.mu.Unlock()
+		e.outboundJobs <- entry.job
+
 	} else {
 		// version mismatch
 		// job was updated after being queued to Run
-		e.rw.Unlock()
+		e.mu.Unlock()
 	}
 
 }
 
-func (e *executorImpl) dispatchUntil(untilFn timeCompareFn) {
+// fetchAndDispatch fetches a job from the scheduler queue and dispatches it for execution.
+// If the job's trigger time is in the future, the job is dispatched and the function continues.
+// If the job's trigger time is ahead of the current time, the job is added back to the scheduler queue.
+// The function breaks out of the loop to wait for the next tick to process more jobs.
+func (e *executorImpl) fetchAndDispatch() {
 	for {
+		// Fetch the job from the scheduler queue
 		jentry := e.jobQueue.NextJob()
 		if jentry == nil {
 			return // We ran out of jobs
 		}
 
-		if untilFn(jentry.job.GetTriggerTime()) {
+		if jentry.job.GetTriggerTime().Before(time.Now()) {
 			e.dispatchJob(jentry)
 			continue
 		}
-		// Adding job back to the scheduler queue as it's ahead of current time
-		e.jobQueue.AddJob(jentry)
-		break // We have processed jobs till current tick
-	}
-}
 
-func untilNow(t time.Time) bool {
-	return time.Now().After(t)
+		// Adding job back to the scheduler queue as it's ahead of current time
+		// this happens when the job trigger time lies in the next tick
+		e.jobQueue.AddJob(jentry)
+
+		// We have processed jobs till current tick
+		// We will wait for next tick to process more jobs
+		break
+	}
 }
 
 // startDispatcher is starts consuming jobs as per their trigger time
@@ -174,30 +190,20 @@ func (e *executorImpl) startDispatcher(ctx context.Context) {
 	go func() {
 		defer e.wgDispacther.Done()
 
-		// look for dispatchable jobs
-		var ticker = time.NewTicker(time.Second)
+		var ticker = time.NewTicker(e.accuracy)
 		for {
 			select {
 			case <-ticker.C:
-				e.dispatchUntil(untilNow) // Dispatch jobs until current time
+				e.fetchAndDispatch() // Dispatch jobs until current time
+				if e.isClosed && e.jobQueue.Len() == 0 {
+					// No more jobs to dispatch
+					return
+				}
+
 			case <-ctx.Done():
 				ticker.Stop() // Ticker is no longer required
-
-				lastMoment := e.getEndOfNextMinute()
-				e.dispatchUntil(func(t time.Time) bool { // Dispatch jobs until lastMoment
-					return lastMoment.After(t)
-				})
-
 				return
 			}
 		}
 	}()
-}
-
-// We know about the latest minute we have jobs for,
-// we are adding one more minute to it and returning the starting moment of that minute
-// We can now dispatch jobs until this time and gracefully quit as we need to execute all the jobs before quitting.
-
-func (e *executorImpl) getEndOfNextMinute() time.Time {
-	return time.UnixMilli(60000 * (e.nextMin + 1))
 }
