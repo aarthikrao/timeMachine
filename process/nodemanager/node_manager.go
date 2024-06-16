@@ -189,7 +189,7 @@ func (nm *NodeManager) executeJobs() error {
 
 		for _, j := range jobs {
 			nm.log.Debug("Fetched job", zap.Any("job", j), zap.Int("nextMinute in sec", nextMinute*60000))
-			nm.exe.AddToQueue(*j)
+			nm.exe.Queue(*j)
 		}
 
 	}

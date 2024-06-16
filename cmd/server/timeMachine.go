@@ -116,6 +116,7 @@ func main() {
 		rStore,
 		raft,
 		appDht,
+		exe,
 		log,
 	)
 

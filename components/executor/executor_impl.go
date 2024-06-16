@@ -22,7 +22,7 @@ type jobEntry struct {
 }
 
 type executorImpl struct {
-	mu   *sync.Mutex
+	mu   sync.Mutex
 	jobs map[string]jobEntry
 
 	outboundJobs   chan<- *jobmodels.Job
@@ -34,15 +34,15 @@ type executorImpl struct {
 	accuracy       time.Duration
 }
 
+var _ Executor = (*executorImpl)(nil)
+
 // NewExecutor creates a new executor that will start dispatching jobs
 // when the trigger time of the job is reached.
 //
 // `gracePeriod` is the time duration for which the executor will wait for the jobs to be executed during shutdown
 // before forcefully closing the executor.
-func NewExecutor(jobCh chan<- *jobmodels.Job, gracePeriod time.Duration, accuracy time.Duration) Executor {
-
+func NewExecutor(jobCh chan<- *jobmodels.Job, gracePeriod time.Duration, accuracy time.Duration) *executorImpl {
 	impl := &executorImpl{
-		mu:           new(sync.Mutex),
 		jobs:         make(map[string]jobEntry),
 		jobQueue:     NewJobHeap(),
 		outboundJobs: jobCh,
@@ -55,28 +55,18 @@ func NewExecutor(jobCh chan<- *jobmodels.Job, gracePeriod time.Duration, accurac
 	return impl
 }
 
-func (e *executorImpl) AddToQueue(job jobmodels.Job) error {
-	if e.isClosed {
-		return ErrExecutorIsClosed
-	}
-
-	if job.GetTriggerTime().Before(time.Now()) {
-		return ErrToLate
-	}
-
-	var entry = jobEntry{
-		job: &job,
-	}
-
+func (e *executorImpl) GetJob(jobId string) (job *jobmodels.Job, version int, deleted bool, err error) {
 	e.mu.Lock()
-	e.jobs[job.ID] = entry
-	e.mu.Unlock()
+	defer e.mu.Unlock()
 
-	e.jobQueue.AddJob(&entry)
-	return nil
+	entry, ok := e.jobs[jobId]
+	if ok {
+		return entry.job, entry.version, entry.deleted, nil
+	}
+	return nil, 0, false, ErrJobNotFound
 }
 
-func (e *executorImpl) Update(job jobmodels.Job) error {
+func (e *executorImpl) Queue(job jobmodels.Job) error {
 	if e.isClosed {
 		return ErrExecutorIsClosed
 	}
@@ -85,17 +75,38 @@ func (e *executorImpl) Update(job jobmodels.Job) error {
 		return ErrToLate
 	}
 
+	inGracePeriod := e.jobLiesWithinGracePeriod(&job)
+
 	e.mu.Lock()
-	entry, ok := e.jobs[job.ID]
-	if !ok {
-		e.mu.Unlock()
-		return ErrJobNotFound
+	defer e.mu.Unlock()
+
+	// check if the job exists in the executor
+	entry, exists := e.jobs[job.ID]
+	if !exists { // its a new job
+		if !inGracePeriod {
+			return ErrNotWithinExecutorGracePeriod
+		}
+
+		entry = jobEntry{
+			job: &job,
+		}
+		e.jobs[job.ID] = entry
+		e.jobQueue.AddJob(&entry)
+
+	} else if exists && !inGracePeriod {
+		// This means the updated trigger time of the job doesnt lie within the graceperiod
+		// hence we can delete the job. This job will be added again to the queue when the time comes
+		entry.deleted = true
+		e.jobs[job.ID] = entry
+
+	} else {
+		// update the job, increment version number to keep track of the latest job
+		entry.version++
+		entry.job = &job
+		e.jobs[job.ID] = entry
+		e.jobQueue.AddJob(&entry)
 	}
-	entry.version++ // increment version number
-	entry.job = &job
-	e.jobs[job.ID] = entry
-	e.mu.Unlock()
-	e.jobQueue.AddJob(&entry)
+
 	return nil
 }
 
@@ -206,4 +217,8 @@ func (e *executorImpl) startDispatcher(ctx context.Context) {
 			}
 		}
 	}()
+}
+
+func (e *executorImpl) jobLiesWithinGracePeriod(job *jobmodels.Job) bool {
+	return job.GetTriggerTime().Before(time.Now().Add(e.gracePeriod))
 }

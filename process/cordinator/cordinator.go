@@ -4,6 +4,7 @@ package cordinator
 import (
 	"github.com/aarthikrao/timeMachine/components/consensus"
 	"github.com/aarthikrao/timeMachine/components/dht"
+	"github.com/aarthikrao/timeMachine/components/executor"
 	"github.com/aarthikrao/timeMachine/components/jobstore"
 	"github.com/aarthikrao/timeMachine/components/routestore"
 	jm "github.com/aarthikrao/timeMachine/models/jobmodels"
@@ -14,17 +15,13 @@ import (
 )
 
 type CordinatorProcess struct {
-	nodeMgr *nodemanager.NodeManager
-
-	rStore *routestore.RouteStore
-
-	dhtMgr dht.DHT
-
-	cp consensus.Consensus
-
-	selfNodeID dht.NodeID
-
-	log *zap.Logger
+	nodeMgr     *nodemanager.NodeManager
+	rStore      *routestore.RouteStore
+	dhtMgr      dht.DHT
+	cp          consensus.Consensus
+	selfNodeID  dht.NodeID
+	jobExecutor executor.Executor
+	log         *zap.Logger
 }
 
 // compile time validation
@@ -38,15 +35,17 @@ func CreateCordinatorProcess(
 	rStore *routestore.RouteStore,
 	cp consensus.Consensus,
 	dhtMgr dht.DHT,
+	jobExecutor executor.Executor,
 	log *zap.Logger,
 ) *CordinatorProcess {
 	return &CordinatorProcess{
-		nodeMgr:    nodeMgr,
-		rStore:     rStore,
-		cp:         cp,
-		dhtMgr:     dhtMgr,
-		selfNodeID: dht.NodeID(selfNodeID),
-		log:        log,
+		nodeMgr:     nodeMgr,
+		rStore:      rStore,
+		cp:          cp,
+		dhtMgr:      dhtMgr,
+		selfNodeID:  dht.NodeID(selfNodeID),
+		jobExecutor: jobExecutor,
+		log:         log,
 	}
 }
 
@@ -115,6 +114,9 @@ func (cp *CordinatorProcess) SetJob(collection string, job *jm.Job) (offset int6
 	if err != nil {
 		return 0, err
 	}
+
+	// Add the job to the executor queue
+	cp.jobExecutor.Queue(*job)
 
 	// Now we set the job in all the follower shards
 	for _, follower := range shardLoc.Followers {
