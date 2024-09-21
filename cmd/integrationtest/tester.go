@@ -18,6 +18,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"sync"
 	"time"
 
 	"github.com/aarthikrao/timeMachine/models/jobmodels"
@@ -37,6 +38,17 @@ var (
 
 type Tester struct {
 	client *httpclient.HTTPClient
+
+	mu    sync.Mutex
+	count int
+}
+
+func (t *Tester) IncrementRecievedCount() int {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+
+	t.count++
+	return t.count
 }
 
 func main() {
@@ -52,6 +64,7 @@ func main() {
 
 	t := &Tester{
 		client: httpclient.NewHTTPClient(30*time.Second, 10),
+		count:  0,
 	}
 
 	go func() {
@@ -63,7 +76,16 @@ func main() {
 				http.Error(w, err.Error(), http.StatusBadRequest)
 				return
 			}
-			log.Println("Recieved callback:", payload)
+			w.WriteHeader(http.StatusOK)
+
+			callbackCount := t.IncrementRecievedCount()
+
+			fmt.Printf("Count: %d Recieved callback:, %v \n", callbackCount, payload)
+			if callbackCount == *count {
+				fmt.Println("All callbacks recieved")
+				os.Exit(0)
+			}
+
 		})
 
 		err := http.ListenAndServe(":4000", nil)
