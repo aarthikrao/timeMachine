@@ -66,8 +66,7 @@ func CreateClusterHealthChecker(
 func (ch *clusterHealth) GetClusterHealth() {
 	ticker := time.NewTicker(ch.pollInterval)
 
-	for {
-		<-ticker.C
+	for range ticker.C {
 
 		// Check if this node is the leader
 		if !ch.cp.IsLeader() {
