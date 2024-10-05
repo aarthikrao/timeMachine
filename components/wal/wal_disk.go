@@ -92,7 +92,7 @@ func (wm *walMiddleware) GetJob(collection, jobID string) (*jm.Job, error) {
 func (wm *walMiddleware) SetJob(collection string, job *jm.Job) (offset int64, err error) {
 	by, err := job.ToBytes()
 	if err != nil {
-		errors.Wrap(err, "wal setjob job")
+		errors.Wrap(err, "wal set job")
 	}
 
 	le := logEntry{

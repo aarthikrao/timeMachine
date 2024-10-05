@@ -10,14 +10,17 @@ import (
 )
 
 type jobRestHandler struct {
-	cp  *cordinator.CordinatorProcess
-	log *zap.Logger
+	cordinatorProcess *cordinator.CordinatorProcess
+	log               *zap.Logger
 }
 
-func CreateJobRestHandler(cp *cordinator.CordinatorProcess, log *zap.Logger) *jobRestHandler {
+func CreateJobRestHandler(
+	cordinatorProcess *cordinator.CordinatorProcess,
+	log *zap.Logger,
+) *jobRestHandler {
 	return &jobRestHandler{
-		cp:  cp,
-		log: log,
+		cordinatorProcess: cordinatorProcess,
+		log:               log,
 	}
 }
 
@@ -25,7 +28,7 @@ func (jrh *jobRestHandler) GetJob(c *gin.Context) {
 	collection := c.Param("collection")
 	jobID := c.Param("jobID")
 
-	job, err := jrh.cp.GetJob(collection, jobID)
+	job, err := jrh.cordinatorProcess.GetJob(collection, jobID)
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -38,9 +41,12 @@ func (jrh *jobRestHandler) SetJob(c *gin.Context) {
 	collection := c.Param("collection")
 
 	var job jobmodels.Job
-	c.BindJSON(&job)
+	if err := c.BindJSON(&job); err != nil {
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
 
-	offset, err := jrh.cp.SetJob(collection, &job)
+	offset, err := jrh.cordinatorProcess.SetJob(collection, &job)
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -58,7 +64,7 @@ func (jrh *jobRestHandler) DeleteJob(c *gin.Context) {
 	collection := c.Param("collection")
 	jobID := c.Param("jobID")
 
-	offset, err := jrh.cp.DeleteJob(collection, jobID)
+	offset, err := jrh.cordinatorProcess.DeleteJob(collection, jobID)
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return

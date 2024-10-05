@@ -91,18 +91,12 @@ func (cp *CordinatorProcess) SetJob(collection string, job *jm.Job) (offset int6
 	if shardLoc.Leader != cp.selfNodeID {
 		// This node is not the leader for this shard, hence we cannot serve write requests
 		// Forward this request to the right owner
-		conn, err := cp.nodeMgr.GetRemoteConnection(shardLoc.Leader)
+		remoteLeader, err := cp.nodeMgr.GetRemoteConnection(shardLoc.Leader)
 		if err != nil {
 			return 0, err
 		}
 
-		offset, err = conn.SetJob(collection, job)
-		if err != nil {
-			return 0, err
-		}
-
-		// No more processing in this node
-		return offset, err
+		return remoteLeader.SetJob(collection, job)
 	}
 
 	// This means this node is the leader for this shard, we need to process the write request
@@ -116,16 +110,18 @@ func (cp *CordinatorProcess) SetJob(collection string, job *jm.Job) (offset int6
 	}
 
 	// Add the job to the executor queue
-	cp.jobExecutor.Queue(*job)
+	if err = cp.jobExecutor.Queue(*job); err != nil {
+		return 0, err
+	}
 
 	// Now we set the job in all the follower shards
 	for _, follower := range shardLoc.Followers {
-		conn, err := cp.nodeMgr.GetRemoteConnection(follower)
+		remoteFollower, err := cp.nodeMgr.GetRemoteConnection(follower)
 		if err != nil {
 			return 0, err
 		}
 
-		_, err = conn.ReplicateSetJob(collection, job)
+		_, err = remoteFollower.ReplicateSetJob(collection, job)
 		if err != nil {
 			return 0, err
 		}
@@ -147,12 +143,12 @@ func (cp *CordinatorProcess) DeleteJob(collection, jobID string) (offset int64, 
 	if shardLoc.Leader != cp.selfNodeID {
 		// This node is not the leader for this shard, hence we cannot serve write requests
 		// Forward this request to the right owner
-		conn, err := cp.nodeMgr.GetRemoteConnection(shardLoc.Leader)
+		remoteLeader, err := cp.nodeMgr.GetRemoteConnection(shardLoc.Leader)
 		if err != nil {
 			return 0, err
 		}
 
-		offset, err = conn.DeleteJob(collection, jobID)
+		offset, err = remoteLeader.DeleteJob(collection, jobID)
 		if err != nil {
 			return 0, err
 		}
@@ -173,12 +169,12 @@ func (cp *CordinatorProcess) DeleteJob(collection, jobID string) (offset int64, 
 
 	// Now we set the job in all the follower shards
 	for _, follower := range shardLoc.Followers {
-		conn, err := cp.nodeMgr.GetRemoteConnection(follower)
+		remoteFollower, err := cp.nodeMgr.GetRemoteConnection(follower)
 		if err != nil {
 			return 0, err
 		}
 
-		_, err = conn.ReplicateDeleteJob(collection, jobID)
+		_, err = remoteFollower.ReplicateDeleteJob(collection, jobID)
 		if err != nil {
 			return 0, err
 		}
