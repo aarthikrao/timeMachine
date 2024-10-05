@@ -8,7 +8,7 @@ import (
 
 var (
 	ErrJobNotFound                  = errors.New("job not found")
-	ErrToLate                       = errors.New("too late")
+	ErrTooLate                      = errors.New("too late")
 	ErrNotWithinExecutorGracePeriod = errors.New("job is not within executor grace period")
 )
 
