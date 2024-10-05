@@ -30,8 +30,14 @@ type executorImpl struct {
 	isClosed       bool
 	stopDispatcher context.CancelFunc
 	wgDispacther   sync.WaitGroup
-	gracePeriod    time.Duration
-	accuracy       time.Duration
+
+	// gracePeriod is the time duration for which the executor will wait for the jobs to be executed during shutdown
+	// before forcefully closing the executor.
+	gracePeriod time.Duration
+
+	// accuracy is the time duration after which the executor will check for the jobs to be executed.
+	// the smaller the accuracy, the more accurate the executor will be in executing the jobs.
+	accuracy time.Duration
 }
 
 var _ Executor = (*executorImpl)(nil)
@@ -39,8 +45,7 @@ var _ Executor = (*executorImpl)(nil)
 // NewExecutor creates a new executor that will start dispatching jobs
 // when the trigger time of the job is reached.
 //
-// `gracePeriod` is the time duration for which the executor will wait for the jobs to be executed during shutdown
-// before forcefully closing the executor.
+// Refer executorImpl for more details.
 func NewExecutor(jobCh chan<- *jobmodels.Job, gracePeriod time.Duration, accuracy time.Duration) *executorImpl {
 	impl := &executorImpl{
 		jobs:         make(map[string]jobEntry),
@@ -72,7 +77,7 @@ func (e *executorImpl) Queue(job jobmodels.Job) error {
 	}
 
 	if job.GetTriggerTime().Before(time.Now()) {
-		return ErrToLate
+		return ErrTooLate
 	}
 
 	inGracePeriod := e.jobLiesWithinGracePeriod(&job)
