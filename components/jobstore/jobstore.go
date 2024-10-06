@@ -21,22 +21,15 @@ type JobStore interface {
 	GetJob(collection, jobID string) (*jm.Job, error)
 	SetJob(collection string, job *jm.Job) (offset int64, err error)
 	DeleteJob(collection, jobID string) (offset int64, err error)
-
-	Type() JobStoreType
-}
-
-// JobStoreDisk is a variant of JobStore that encapsulates Close() method
-type JobStoreDisk interface {
-	JobStore
-	Close() error
 }
 
 // JobFetcher is used to fetch the jobs for executing them
 type JobFetcher interface {
-	JobStoreDisk
+	JobStore
 
-	// FetchJobForBucket is used to fetch all the jobs in the datastore till the provided time
+	// FetchJobForBucket is used to fetch all the jobs in the datastore in the given minute
 	FetchJobForBucket(minute int) ([]*jm.Job, error)
+	Close() error
 }
 
 // JobStoreWithReplicator adds replicate methods on top of JobStore interface
