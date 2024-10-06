@@ -30,19 +30,13 @@ var (
 )
 
 type NodeManager struct {
-	selfNodeID dht.NodeID
-
-	dsmgr *dsm.DataStoreManager
-
-	connMgr *connectionmanager.ConnectionManager
-
-	dhtMgr dht.DHT
-
-	cp consensus.Consensus
-
-	exe executor.Executor
-
-	log *zap.Logger
+	selfNodeID   dht.NodeID
+	dataStoreMgr *dsm.DataStoreManager
+	connMgr      *connectionmanager.ConnectionManager
+	dhtMgr       dht.DHT
+	cp           consensus.Consensus
+	exe          executor.Executor
+	log          *zap.Logger
 }
 
 func CreateNodeManager(
@@ -55,13 +49,13 @@ func CreateNodeManager(
 	log *zap.Logger,
 ) *NodeManager {
 	return &NodeManager{
-		selfNodeID: dht.NodeID(selfNodeID),
-		dsmgr:      dsmgr,
-		dhtMgr:     dhtMgr,
-		connMgr:    connMgr,
-		cp:         cp,
-		exe:        exe,
-		log:        log,
+		selfNodeID:   dht.NodeID(selfNodeID),
+		dataStoreMgr: dsmgr,
+		dhtMgr:       dhtMgr,
+		connMgr:      connMgr,
+		cp:           cp,
+		exe:          exe,
+		log:          log,
 	}
 }
 
@@ -109,7 +103,7 @@ func (nm *NodeManager) InitialiseNode() error {
 		return dht.ErrDHTNotInitialised
 	}
 
-	if err := nm.dsmgr.InitialiseDataStores(shards); err != nil {
+	if err := nm.dataStoreMgr.InitialiseDataStores(shards); err != nil {
 		return err
 	}
 
@@ -156,12 +150,12 @@ func (nm *NodeManager) createConnections() error {
 	return nil
 }
 
-func (nm *NodeManager) GetLocalShard(shardID dht.ShardID) (js.JobStore, error) {
-	if nm.dsmgr == nil {
+func (nm *NodeManager) GetLocalShard(shardID dht.ShardID) (js.JobFetcher, error) {
+	if nm.dataStoreMgr == nil {
 		return nil, ErrNotYetInitalised
 	}
 
-	return nm.dsmgr.GetDataNode(shardID)
+	return nm.dataStoreMgr.GetDataNode(shardID)
 }
 
 func (nm *NodeManager) GetRemoteConnection(nodeID dht.NodeID) (js.JobStoreWithReplicator, error) {
@@ -175,7 +169,7 @@ func (nm *NodeManager) GetRemoteConnection(nodeID dht.NodeID) (js.JobStoreWithRe
 // Fetches the jobs for the next minute and schedules it to the executor
 func (nm *NodeManager) executeJobs() error {
 	for _, shardID := range nm.dhtMgr.GetLeaderShardsForNode(nm.selfNodeID) {
-		js, err := nm.dsmgr.GetDataNode(shardID)
+		js, err := nm.dataStoreMgr.GetDataNode(shardID)
 		if err != nil {
 			return err
 		}

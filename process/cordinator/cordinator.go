@@ -25,7 +25,6 @@ type CordinatorProcess struct {
 }
 
 // compile time validation
-var _ jobstore.JobStore = (*CordinatorProcess)(nil)
 var _ jobstore.JobFetcher = (*CordinatorProcess)(nil)
 var _ jobstore.JobStoreWithReplicator = (*CordinatorProcess)(nil)
 
