@@ -32,9 +32,13 @@ func Test_dht_GetShard(t *testing.T) {
 				key: "ABCD",
 			},
 			want: ShardLocation{
-				ID:        2,
-				Leader:    "node3",
-				Followers: []NodeID{"node1", "node2"},
+				ID: 2,
+				Leader: NodeDetails{
+					ID: "node3",
+				},
+				Followers: []NodeDetails{
+					{ID: "node1"},
+					{ID: "node2"}},
 			},
 		}, {
 			name: "Key: kg654fd89h",
@@ -42,9 +46,13 @@ func Test_dht_GetShard(t *testing.T) {
 				key: "kg654fd89h",
 			},
 			want: ShardLocation{
-				ID:        5,
-				Leader:    "node3",
-				Followers: []NodeID{"node1", "node2"},
+				ID: 5,
+				Leader: NodeDetails{
+					ID: "node3",
+				},
+				Followers: []NodeDetails{
+					{ID: "node1"},
+					{ID: "node2"}},
 			},
 		}, {
 			name: "Key: )(*&^%$#@!aitgehv)",
@@ -52,9 +60,13 @@ func Test_dht_GetShard(t *testing.T) {
 				key: ")(*&^%$#@!aitgehv)",
 			},
 			want: ShardLocation{
-				ID:        2,
-				Leader:    "node3",
-				Followers: []NodeID{"node1", "node2"},
+				ID: 2,
+				Leader: NodeDetails{
+					ID: "node3",
+				},
+				Followers: []NodeDetails{
+					{ID: "node1"},
+					{ID: "node2"}},
 			},
 		},
 	}

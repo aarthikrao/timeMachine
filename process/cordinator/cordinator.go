@@ -65,7 +65,7 @@ func (cp *CordinatorProcess) GetJob(collection, jobID string) (*jm.Job, error) {
 
 	// Local shard doesnt exist, fetch remote shard
 	// TODO: Add read preferences from API
-	conn, err := cp.nodeMgr.GetRemoteConnection(shardLoc.Leader)
+	conn, err := cp.nodeMgr.GetRemoteConnection(shardLoc.Leader.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -87,10 +87,10 @@ func (cp *CordinatorProcess) SetJob(collection string, job *jm.Job) (offset int6
 		return 0, err
 	}
 
-	if shardLoc.Leader != cp.selfNodeID {
+	if shardLoc.Leader.ID != cp.selfNodeID {
 		// This node is not the leader for this shard, hence we cannot serve write requests
 		// Forward this request to the right owner
-		remoteLeader, err := cp.nodeMgr.GetRemoteConnection(shardLoc.Leader)
+		remoteLeader, err := cp.nodeMgr.GetRemoteConnection(shardLoc.Leader.ID)
 		if err != nil {
 			return 0, err
 		}
@@ -115,7 +115,7 @@ func (cp *CordinatorProcess) SetJob(collection string, job *jm.Job) (offset int6
 
 	// Now we set the job in all the follower shards
 	for _, follower := range shardLoc.Followers {
-		remoteFollower, err := cp.nodeMgr.GetRemoteConnection(follower)
+		remoteFollower, err := cp.nodeMgr.GetRemoteConnection(follower.ID)
 		if err != nil {
 			return 0, err
 		}
@@ -139,10 +139,10 @@ func (cp *CordinatorProcess) DeleteJob(collection, jobID string) (offset int64, 
 		return 0, err
 	}
 
-	if shardLoc.Leader != cp.selfNodeID {
+	if shardLoc.Leader.ID != cp.selfNodeID {
 		// This node is not the leader for this shard, hence we cannot serve write requests
 		// Forward this request to the right owner
-		remoteLeader, err := cp.nodeMgr.GetRemoteConnection(shardLoc.Leader)
+		remoteLeader, err := cp.nodeMgr.GetRemoteConnection(shardLoc.Leader.ID)
 		if err != nil {
 			return 0, err
 		}
@@ -168,7 +168,7 @@ func (cp *CordinatorProcess) DeleteJob(collection, jobID string) (offset int64, 
 
 	// Now we set the job in all the follower shards
 	for _, follower := range shardLoc.Followers {
-		remoteFollower, err := cp.nodeMgr.GetRemoteConnection(follower)
+		remoteFollower, err := cp.nodeMgr.GetRemoteConnection(follower.ID)
 		if err != nil {
 			return 0, err
 		}

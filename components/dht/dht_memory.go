@@ -32,17 +32,21 @@ func InitialiseDHT(shardCount int, seedNodes []string, replication int) (map[Sha
 
 	for i := 0; i < shardCount; i++ {
 		leaderNode := NodeID(seedNodes[i%nodeCount])
-		followerNodes := []NodeID{}
+		followerNodes := []NodeDetails{}
 
 		for r := 1; r < replication; r++ {
 			follower := NodeID(seedNodes[(i+r)%nodeCount])
-			followerNodes = append(followerNodes, follower)
+			followerNodes = append(followerNodes, NodeDetails{
+				ID: follower,
+			})
 		}
 
 		shardID := ShardID(i)
 		shards[shardID] = ShardLocation{
-			ID:        shardID,
-			Leader:    leaderNode,
+			ID: shardID,
+			Leader: NodeDetails{
+				ID: leaderNode,
+			},
 			Followers: followerNodes,
 		}
 	}
@@ -70,7 +74,7 @@ func (d *dht) GetLeaderShardsForNode(nodeID NodeID) []ShardID {
 	leaderShards := []ShardID{}
 
 	for shardID, shard := range d.shards {
-		if shard.Leader == nodeID {
+		if shard.Leader.ID == nodeID {
 			leaderShards = append(leaderShards, shardID)
 		}
 	}
@@ -86,13 +90,13 @@ func (d *dht) GetAllShardsForNode(nodeID NodeID) []ShardID {
 
 	for _, shardLocation := range d.shards {
 		// Check for leader
-		if shardLocation.Leader == nodeID {
+		if shardLocation.Leader.ID == nodeID {
 			shards = append(shards, shardLocation.ID)
 		}
 
 		// Check for follower shards
 		for _, node := range shardLocation.Followers {
-			if node == nodeID {
+			if node.ID == nodeID {
 				shards = append(shards, shardLocation.ID)
 			}
 		}
@@ -114,7 +118,7 @@ func (d *dht) Snapshot() map[ShardID]ShardLocation {
 
 	m := make(map[ShardID]ShardLocation)
 	for shardID, shard := range d.shards {
-		followers := []NodeID{}
+		followers := []NodeDetails{}
 		followers = append(followers, shard.Followers...)
 
 		m[shardID] = ShardLocation{

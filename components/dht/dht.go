@@ -11,10 +11,14 @@ var (
 type ShardID int
 type NodeID string
 
+type NodeDetails struct {
+	ID NodeID
+}
+
 type ShardLocation struct {
 	ID        ShardID
-	Leader    NodeID
-	Followers []NodeID
+	Leader    NodeDetails
+	Followers []NodeDetails
 }
 
 // DHT contains the location of a given key in a distributed data system.

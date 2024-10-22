@@ -115,7 +115,7 @@ func (ch *clusterHealth) handleNodeFailure(ni dhtComponent.NodeID) {
 
 	snapshot := ch.dht.Snapshot()
 	for si, loc := range snapshot {
-		if loc.Leader == ni {
+		if loc.Leader.ID == ni {
 
 			// Here we are assiging the next follower as a leader
 			// TODO: In real tife usecases, we will have to take into consideration
