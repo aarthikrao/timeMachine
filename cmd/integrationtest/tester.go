@@ -55,6 +55,7 @@ func (t *Tester) IncrementRecievedCount() int {
 func main() {
 	count := flag.Int("c", 0, "number of jobs to create")
 	delay := flag.Int("d", 60000, "delay in milliseconds for job trigger time")
+	routines := flag.Int("r", 10, "number of routines to create jobs")
 	flag.Parse()
 
 	if count == nil || *count == 0 {
@@ -114,7 +115,7 @@ func main() {
 	time.Sleep(2 * time.Second)
 
 	// Create jobs
-	t.createJobs(*count, *delay)
+	t.createJobs(*count, *delay, *routines)
 
 	fmt.Println("Listening for callbacks on port 4000... Press Ctrl + C to exit")
 
@@ -149,25 +150,44 @@ func (t *Tester) createRoute() {
 
 }
 
-func (t *Tester) createJobs(count int, delayMS int) {
-	for i := 0; i < count; i++ {
-		var job jobmodels.Job = jobmodels.Job{
-			ID:        fmt.Sprintf("job-%d", i),
-			TriggerMS: timeUtils.GetCurrentMillis() + delayMS,
-			Meta:      []byte(`{"foo": "bar"}`),
-			Route:     TesterRoute,
-		}
+func (t *Tester) createJobs(count int, delayMS int, routines int) {
+	var wg sync.WaitGroup
+	jobChan := make(chan int, count)
 
-		by, statusCode, err := t.client.Post(JobURL, job)
-		if err != nil {
-			fmt.Println("Error creating job:", err)
-			continue
-		}
-		if statusCode != http.StatusOK {
-			fmt.Println("Error creating job. Status code:", statusCode, string(by))
-			continue
-		}
-		fmt.Println("Created job", i, " : ", string(by), " with payload: ", job)
+	// Start goroutines
+	for i := 0; i < routines; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for i := range jobChan {
+				var job jobmodels.Job = jobmodels.Job{
+					ID:        fmt.Sprintf("job-%d", i),
+					TriggerMS: timeUtils.GetCurrentMillis() + delayMS,
+					Meta:      []byte(`{"foo": "bar"}`),
+					Route:     TesterRoute,
+				}
+
+				by, statusCode, err := t.client.Post(JobURL, job)
+				if err != nil {
+					fmt.Println("Error creating job:", err)
+					continue
+				}
+				if statusCode != http.StatusOK {
+					fmt.Println("Error creating job. Status code:", statusCode, string(by))
+					continue
+				}
+				fmt.Println("Created job", i, " : ", string(by), " with payload: ", job)
+			}
+		}()
 	}
+
+	// Send jobs to the jobChan
+	for i := 0; i < count; i++ {
+		jobChan <- i
+	}
+	close(jobChan)
+
+	// Wait for all goroutines to finish
+	wg.Wait()
 	fmt.Printf("Created %d jobs...\n", count)
 }
