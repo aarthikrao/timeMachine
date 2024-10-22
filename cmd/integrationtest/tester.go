@@ -11,6 +11,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -67,6 +68,19 @@ func main() {
 		count:  0,
 	}
 
+	srv := &http.Server{
+		Addr: ":4000",
+	}
+	var wg sync.WaitGroup
+	wg.Add(1)
+
+	go func() {
+		signalChan := make(chan os.Signal, 1)
+		signal.Notify(signalChan, os.Interrupt)
+		<-signalChan
+		wg.Done()
+	}()
+
 	go func() {
 		http.HandleFunc("/callback", func(w http.ResponseWriter, r *http.Request) {
 			// Handle callback logic here
@@ -83,12 +97,12 @@ func main() {
 			fmt.Printf("Count: %d Recieved callback:, %v \n", callbackCount, payload)
 			if callbackCount == *count {
 				fmt.Println("All callbacks recieved")
-				os.Exit(0)
+				wg.Done()
 			}
 
 		})
 
-		err := http.ListenAndServe(":4000", nil)
+		err := srv.ListenAndServe()
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -104,9 +118,13 @@ func main() {
 
 	fmt.Println("Listening for callbacks on port 4000... Press Ctrl + C to exit")
 
-	signalChan := make(chan os.Signal, 1)
-	signal.Notify(signalChan, os.Interrupt)
-	<-signalChan
+	wg.Wait()
+
+	err := srv.Shutdown(context.Background())
+	if err != nil {
+		fmt.Println("Error shutting down server:", err)
+	}
+
 	fmt.Println("Exiting...")
 }
 
