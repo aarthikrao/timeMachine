@@ -34,7 +34,9 @@ type boltDataStore struct {
 }
 
 func CreateBoltDataStore(path string) (jobstore.JobFetcher, error) {
-	db, err := bolt.Open(path, 0666, nil)
+	db, err := bolt.Open(path, 0666, &bolt.Options{
+		NoSync: true,
+	})
 	if err != nil {
 		return nil, err
 	}
